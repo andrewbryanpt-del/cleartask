@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/api";
 import { useSession } from "../auth/session";
 import { ErrorText } from "../../components/ui";
+import { AuthImage } from "../../components/AuthImage";
 
 const STEPS = ["Business details", "Company logo", "First department"];
 
@@ -162,7 +163,7 @@ export function OnboardingPage() {
               Add your logo — it appears on the app header and your reports.
             </p>
             {logoPreview ? (
-              <img
+              <AuthImage
                 src={logoPreview}
                 alt="Company logo"
                 style={{ maxWidth: 140, maxHeight: 140, margin: "0 auto", borderRadius: 12 }}

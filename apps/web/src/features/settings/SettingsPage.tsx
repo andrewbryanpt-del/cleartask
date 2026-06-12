@@ -6,6 +6,7 @@ import { api } from "../../lib/api";
 import { enablePush } from "../../lib/push";
 import { useSession } from "../auth/session";
 import { ErrorText } from "../../components/ui";
+import { AuthImage } from "../../components/AuthImage";
 
 export function SettingsPage() {
   const session = useSession();
@@ -56,6 +57,32 @@ export function SettingsPage() {
 
       <div className="card">
         <h2>Profile</h2>
+        <div className="row" style={{ marginBottom: "0.75rem" }}>
+          {session.user?.avatarUrl ? (
+            <AuthImage
+              src={session.user.avatarUrl}
+              alt={`${session.user.name}'s profile photo`}
+              style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover" }}
+            />
+          ) : (
+            <span
+              className="muted"
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: "50%",
+                background: "var(--border)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "1.4rem",
+                fontWeight: 700,
+              }}
+            >
+              {session.user?.name?.[0]?.toUpperCase() ?? "?"}
+            </span>
+          )}
+        </div>
         <form onSubmit={onSubmit}>
           <div className="form-row">
             <div className="field">

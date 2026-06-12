@@ -4,6 +4,7 @@ import { api } from "../../lib/api";
 import { useOrganization } from "../../lib/queries";
 import { useSession } from "../auth/session";
 import { ErrorText, Spinner } from "../../components/ui";
+import { AuthImage } from "../../components/AuthImage";
 
 // Owner-only: business identity lives here, not in Admin. The API enforces
 // this with requireOwner — the route guard is just the polite version.
@@ -90,7 +91,7 @@ export function OrganisationSettingsPage() {
         <h2>Company logo</h2>
         <div className="row">
           {org.logoUrl ? (
-            <img
+            <AuthImage
               src={org.logoUrl}
               alt={`${org.name} logo`}
               style={{ maxWidth: 96, maxHeight: 96, borderRadius: 10 }}
