@@ -6,3 +6,5 @@ export * from "./schemas/invitations";
 export * from "./schemas/users";
 export * from "./schemas/tasks";
 export * from "./schemas/task-templates";
+export * from "./schemas/recurrence";
+export * from "./schemas/notifications";

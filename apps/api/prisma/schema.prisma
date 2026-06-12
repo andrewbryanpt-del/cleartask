@@ -69,10 +69,11 @@ model Location {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  departments  Department[]
-  memberships  Membership[] @relation("MembershipLocations")
-  tasks        Task[]
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  departments     Department[]
+  memberships     Membership[]     @relation("MembershipLocations")
+  tasks           Task[]
+  recurrenceRules RecurrenceRule[]
 
   @@index([organizationId])
 }
@@ -85,10 +86,11 @@ model Department {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  location     Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  memberships  Membership[] @relation("MembershipDepartments")
-  tasks        Task[]
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  location        Location         @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  memberships     Membership[]     @relation("MembershipDepartments")
+  tasks           Task[]
+  recurrenceRules RecurrenceRule[]
 
   @@index([organizationId])
   @@index([locationId])
@@ -238,6 +240,8 @@ model TaskAssignment {
   status             TaskStatus @default(NOT_STARTED)
   sourceDepartmentId String?
   completedAt        DateTime?
+  // Set by the overdue sweep so each assignment is only escalated once.
+  overdueNotifiedAt  DateTime?
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
@@ -268,20 +272,28 @@ model TaskTemplate {
 }
 
 // iCalendar RRULE evaluated by a cron job that materializes the next
-// concrete Task occurrence ahead of time.
+// concrete Task occurrence ahead of time. nextRunAt is the dueAt of the
+// next occurrence still to be materialized. Assignees are stored on the
+// rule so each materialized task runs the normal assignment fan-out.
 model RecurrenceRule {
-  id             String    @id @default(uuid())
-  organizationId String
-  templateId     String
-  rrule          String
-  timezone       String    @default("UTC")
-  active         Boolean   @default(true)
-  nextRunAt      DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                    String    @id @default(uuid())
+  organizationId        String
+  templateId            String
+  rrule                 String
+  timezone              String    @default("UTC")
+  active                Boolean   @default(true)
+  nextRunAt             DateTime?
+  locationId            String?
+  departmentId          String?
+  assigneeMembershipIds String[]  @default([])
+  assigneeDepartmentIds String[]  @default([])
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   template     TaskTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  location     Location?    @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  department   Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   tasks        Task[]
 
   @@index([active, nextRunAt])

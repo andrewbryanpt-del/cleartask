@@ -15,6 +15,10 @@ import { prisma } from "../../lib/prisma";
 import { badRequest, forbidden, notFound } from "../../lib/errors";
 import { fileUrl, saveFile } from "../../lib/storage";
 import { recordAudit } from "../audit/audit.service";
+import {
+  enqueueTaskAssigned,
+  scheduleTaskReminders,
+} from "../../jobs/boss";
 import type { AuthContext } from "../../plugins/auth";
 import {
   canManageTask,
@@ -194,6 +198,11 @@ export default async function tasksRoutes(app: FastifyInstance) {
           assigneeCount: targets.length,
         },
       });
+      await enqueueTaskAssigned(
+        task.id,
+        targets.map((t) => t.membershipId),
+      );
+      await scheduleTaskReminders(task);
 
       const detail = await getVisibleTask(req.auth, task.id);
       return reply.status(201).send(serializeTaskDetail(detail, req.auth));
@@ -303,7 +312,7 @@ export default async function tasksRoutes(app: FastifyInstance) {
         if (!location) throw badRequest("Unknown location");
       }
 
-      await prisma.task.update({
+      const updated = await prisma.task.update({
         where: { id: task.id },
         data: {
           ...(input.title !== undefined ? { title: input.title } : {}),
@@ -330,6 +339,14 @@ export default async function tasksRoutes(app: FastifyInstance) {
         entityId: task.id,
         detail: input,
       });
+      // A new dueAt (or new offsets) schedules a fresh reminder set; jobs
+      // from the old schedule see a dueAt mismatch and drop themselves.
+      if (
+        input.dueAt !== undefined ||
+        input.reminderOffsetsMinutes !== undefined
+      ) {
+        await scheduleTaskReminders(updated);
+      }
       const detail = await getVisibleTask(req.auth, task.id);
       return serializeTaskDetail(detail, req.auth);
     },
@@ -390,6 +407,16 @@ export default async function tasksRoutes(app: FastifyInstance) {
         entityId: task.id,
         detail: { addedCount: result.count },
       });
+      // Only people who weren't already assigned get the notification.
+      const alreadyAssigned = new Set(
+        task.assignments.map((a) => a.membershipId),
+      );
+      await enqueueTaskAssigned(
+        task.id,
+        targets
+          .map((t) => t.membershipId)
+          .filter((id) => !alreadyAssigned.has(id)),
+      );
       const detail = await getVisibleTask(req.auth, task.id);
       return reply.status(201).send(serializeTaskDetail(detail, req.auth));
     },
