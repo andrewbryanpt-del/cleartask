@@ -36,7 +36,7 @@ export function TasksPage() {
       <div className="page-header">
         <h1>Tasks</h1>
         <span className="spacer" />
-        {session.can("task.create") && (
+        {session.can("task.create") && !session.isRestricted && (
           <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
             + New task
           </button>
@@ -62,14 +62,16 @@ export function TasksPage() {
           <option value="IN_PROGRESS">In progress</option>
           <option value="COMPLETED">Completed</option>
         </select>
-        <label className="row small" style={{ gap: "0.35rem" }}>
-          <input
-            type="checkbox"
-            checked={filters.assignedToMe}
-            onChange={(e) => setFilters((f) => ({ ...f, assignedToMe: e.target.checked }))}
-          />
-          Assigned to me
-        </label>
+        {!session.isRestricted && (
+          <label className="row small" style={{ gap: "0.35rem" }}>
+            <input
+              type="checkbox"
+              checked={filters.assignedToMe}
+              onChange={(e) => setFilters((f) => ({ ...f, assignedToMe: e.target.checked }))}
+            />
+            Assigned to me
+          </label>
+        )}
       </div>
 
       {tasks.isLoading && <Spinner />}

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { resolveAssignmentTargets } from "./tasks.service";
+import { isRestrictedToOwnTasks } from "@task-tracker/shared";
+import { canManageTask, resolveAssignmentTargets } from "./tasks.service";
+import type { AuthContext } from "../../plugins/auth";
 
 describe("resolveAssignmentTargets", () => {
   it("fans a department out to one target per member", () => {
@@ -51,5 +53,46 @@ describe("resolveAssignmentTargets", () => {
 
   it("returns nothing when no assignees are given", () => {
     expect(resolveAssignmentTargets([], [])).toEqual([]);
+  });
+});
+
+function auth(overrides: Partial<AuthContext>): AuthContext {
+  return {
+    userId: "u1",
+    membershipId: "m1",
+    organizationId: "o1",
+    isOwner: false,
+    permissions: new Set<string>(),
+    ...overrides,
+  };
+}
+
+describe("task.own_only restriction", () => {
+  it("marks holders restricted, but never the owner", () => {
+    expect(
+      isRestrictedToOwnTasks(auth({ permissions: new Set(["task.own_only"]) })),
+    ).toBe(true);
+    expect(
+      isRestrictedToOwnTasks(
+        auth({ isOwner: true, permissions: new Set(["task.own_only"]) }),
+      ),
+    ).toBe(false);
+    expect(isRestrictedToOwnTasks(auth({}))).toBe(false);
+  });
+
+  it("blocks task management even for the creator or task.manage holders", () => {
+    const restricted = auth({
+      permissions: new Set(["task.own_only", "task.manage", "task.create"]),
+    });
+    expect(canManageTask(restricted, { createdByMembershipId: "m1" })).toBe(false);
+    expect(canManageTask(restricted, { createdByMembershipId: "other" })).toBe(false);
+  });
+
+  it("leaves unrestricted holders untouched", () => {
+    const manager = auth({ permissions: new Set(["task.manage"]) });
+    expect(canManageTask(manager, { createdByMembershipId: "other" })).toBe(true);
+    const creator = auth({});
+    expect(canManageTask(creator, { createdByMembershipId: "m1" })).toBe(true);
+    expect(canManageTask(creator, { createdByMembershipId: "other" })).toBe(false);
   });
 });

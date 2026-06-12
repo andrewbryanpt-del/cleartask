@@ -22,8 +22,16 @@ export function RequirePermission({
   children: ReactNode;
 }) {
   const session = useSession();
-  if (!anyOf.some((p) => session.can(p))) {
+  // Own-only roles are locked out of permission-gated areas entirely —
+  // the restriction overrides any grants the role also carries.
+  if (session.isRestricted || !anyOf.some((p) => session.can(p))) {
     return <Navigate to="/dashboard" replace />;
   }
+  return <>{children}</>;
+}
+
+export function RequireUnrestricted({ children }: { children: ReactNode }) {
+  const session = useSession();
+  if (session.isRestricted) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }

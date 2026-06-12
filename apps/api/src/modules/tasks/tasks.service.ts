@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { hasPermission } from "@task-tracker/shared";
+import { hasPermission, isRestrictedToOwnTasks } from "@task-tracker/shared";
 import { prisma } from "../../lib/prisma";
 import { badRequest, notFound } from "../../lib/errors";
 import type { AuthContext } from "../../plugins/auth";
@@ -70,6 +70,9 @@ export function canManageTask(
   auth: AuthContext,
   task: { createdByMembershipId: string | null },
 ): boolean {
+  // The own-only restriction beats every management grant, including
+  // being the task's creator.
+  if (isRestrictedToOwnTasks(auth)) return false;
   return (
     hasPermission(auth, "task.manage") ||
     task.createdByMembershipId === auth.membershipId
@@ -126,9 +129,14 @@ export async function getVisibleTask(
   });
   if (!task) throw notFound("Task not found");
 
-  const visible =
-    canManageTask(auth, task) ||
-    task.assignments.some((a) => a.membershipId === auth.membershipId);
+  const assignedToMe = task.assignments.some(
+    (a) => a.membershipId === auth.membershipId,
+  );
+  // Own-only roles see exclusively their assigned tasks — not even ones
+  // they created.
+  const visible = isRestrictedToOwnTasks(auth)
+    ? assignedToMe
+    : canManageTask(auth, task) || assignedToMe;
   if (!visible) throw notFound("Task not found");
   return task;
 }

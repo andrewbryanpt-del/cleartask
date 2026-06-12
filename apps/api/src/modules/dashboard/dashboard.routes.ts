@@ -1,5 +1,9 @@
 import type { FastifyInstance } from "fastify";
-import { dashboardQuerySchema, hasPermission } from "@task-tracker/shared";
+import {
+  dashboardQuerySchema,
+  hasPermission,
+  isRestrictedToOwnTasks,
+} from "@task-tracker/shared";
 import { prisma } from "../../lib/prisma";
 import { forbidden } from "../../lib/errors";
 import {
@@ -48,6 +52,9 @@ export default async function dashboardRoutes(app: FastifyInstance) {
     "/dashboard/department",
     { preHandler: app.authenticate },
     async (req) => {
+      if (isRestrictedToOwnTasks(req.auth)) {
+        throw forbidden("Your role is limited to your personal dashboard");
+      }
       const query = dashboardQuerySchema.parse(req.query);
       const orgWide =
         req.auth.isOwner || hasPermission(req.auth, "dashboard.org");
@@ -108,6 +115,9 @@ export default async function dashboardRoutes(app: FastifyInstance) {
     "/dashboard/organization",
     { preHandler: app.requirePermission("dashboard.org") },
     async (req) => {
+      if (isRestrictedToOwnTasks(req.auth)) {
+        throw forbidden("Your role is limited to your personal dashboard");
+      }
       const now = new Date();
       const facts = await fetchAssignmentFacts(req.auth.organizationId);
       const overdue = facts

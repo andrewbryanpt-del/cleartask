@@ -15,6 +15,8 @@ export const PERMISSIONS = {
   "dashboard.department": "View dashboards for own departments",
   "report.export": "Export PDF and Excel reports",
   "audit.view": "View the audit trail",
+  "task.own_only":
+    "Restriction: only see and act on tasks assigned to you personally, with a personal dashboard only — overrides team and org-wide visibility",
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -34,4 +36,15 @@ export function hasPermission(
   permission: Permission,
 ): boolean {
   return holder.isOwner || holder.permissions.has(permission);
+}
+
+/**
+ * task.own_only is a restriction, not a grant: holders only see and act on
+ * tasks assigned to them personally and lose team/org-wide visibility,
+ * regardless of what else their role grants. Deliberately NOT routed
+ * through hasPermission — the owner bypass there would mark every owner
+ * as restricted.
+ */
+export function isRestrictedToOwnTasks(holder: PermissionHolder): boolean {
+  return !holder.isOwner && holder.permissions.has("task.own_only");
 }

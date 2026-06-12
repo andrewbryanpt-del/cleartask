@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
-import { listAuditQuerySchema } from "@task-tracker/shared";
+import { isRestrictedToOwnTasks, listAuditQuerySchema } from "@task-tracker/shared";
 import { prisma } from "../../lib/prisma";
+import { forbidden } from "../../lib/errors";
 import { withActorNames } from "./audit.service";
 
 export default async function auditRoutes(app: FastifyInstance) {
@@ -8,6 +9,9 @@ export default async function auditRoutes(app: FastifyInstance) {
     "/audit",
     { preHandler: app.requirePermission("audit.view") },
     async (req) => {
+      if (isRestrictedToOwnTasks(req.auth)) {
+        throw forbidden("Your role is limited to your own tasks");
+      }
       const query = listAuditQuerySchema.parse(req.query);
       const logs = await prisma.auditLog.findMany({
         where: {

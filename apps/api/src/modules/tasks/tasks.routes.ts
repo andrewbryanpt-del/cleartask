@@ -7,6 +7,7 @@ import {
   createTaskCommentSchema,
   createTaskSchema,
   hasPermission,
+  isRestrictedToOwnTasks,
   listTasksQuerySchema,
   updateAssignmentStatusSchema,
   updateTaskSchema,
@@ -104,6 +105,9 @@ export default async function tasksRoutes(app: FastifyInstance) {
     "/tasks",
     { preHandler: app.requirePermission("task.create") },
     async (req, reply) => {
+      if (isRestrictedToOwnTasks(req.auth)) {
+        throw forbidden("Your role is limited to your own assigned tasks");
+      }
       const input = createTaskSchema.parse(req.body);
       const orgId = req.auth.organizationId;
 
@@ -211,7 +215,8 @@ export default async function tasksRoutes(app: FastifyInstance) {
 
   app.get("/tasks", { preHandler: app.authenticate }, async (req) => {
     const query = listTasksQuerySchema.parse(req.query);
-    const manager = hasPermission(req.auth, "task.manage");
+    const restricted = isRestrictedToOwnTasks(req.auth);
+    const manager = !restricted && hasPermission(req.auth, "task.manage");
 
     const where: Prisma.TaskWhereInput = {
       organizationId: req.auth.organizationId,
@@ -221,7 +226,8 @@ export default async function tasksRoutes(app: FastifyInstance) {
         ? { title: { contains: query.search, mode: "insensitive" } }
         : {}),
     };
-    if (query.assignedToMe) {
+    if (restricted || query.assignedToMe) {
+      // Own-only roles are always pinned to their own assignments.
       where.assignments = {
         some: {
           membershipId: req.auth.membershipId,
@@ -232,7 +238,7 @@ export default async function tasksRoutes(app: FastifyInstance) {
       where.assignments = { some: { status: query.status } };
     }
     // Non-managers only see tasks they created or are assigned to.
-    if (!manager) {
+    if (!manager && !restricted) {
       where.OR = [
         { createdByMembershipId: req.auth.membershipId },
         { assignments: { some: { membershipId: req.auth.membershipId } } },

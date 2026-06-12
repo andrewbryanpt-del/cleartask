@@ -88,7 +88,8 @@ export function TaskDetailPage() {
   const t = task.data!;
 
   const canManage =
-    session.can("task.manage") || t.createdByMembershipId === myMembershipId;
+    !session.isRestricted &&
+    (session.can("task.manage") || t.createdByMembershipId === myMembershipId);
   const myAssignment = t.assignments.find((a) => a.membership.id === myMembershipId);
 
   async function takeProofPhoto(assignmentId: string) {

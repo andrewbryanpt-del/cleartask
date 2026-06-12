@@ -3,8 +3,10 @@ import {
   auditExportQuerySchema,
   completionReportExportQuerySchema,
   completionReportQuerySchema,
+  isRestrictedToOwnTasks,
 } from "@task-tracker/shared";
 import { prisma } from "../../lib/prisma";
+import { forbidden } from "../../lib/errors";
 import { recordAudit, withActorNames } from "../audit/audit.service";
 import {
   fetchAssignmentFacts,
@@ -60,11 +62,20 @@ async function buildCompletionReport(
   };
 }
 
+// Reports are org-wide data — own-only restricted roles are blocked even
+// when their role also carries the report/dashboard grants.
+function assertUnrestricted(auth: Parameters<typeof isRestrictedToOwnTasks>[0]) {
+  if (isRestrictedToOwnTasks(auth)) {
+    throw forbidden("Your role is limited to your own tasks");
+  }
+}
+
 export default async function reportsRoutes(app: FastifyInstance) {
   app.get(
     "/reports/completion",
     { preHandler: app.requirePermission("dashboard.org") },
     async (req) => {
+      assertUnrestricted(req.auth);
       const query = completionReportQuerySchema.parse(req.query);
       const report = await buildCompletionReport(
         req.auth.organizationId,
@@ -79,6 +90,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
     "/reports/completion/export",
     { preHandler: app.requirePermission("report.export") },
     async (req, reply) => {
+      assertUnrestricted(req.auth);
       const query = completionReportExportQuerySchema.parse(req.query);
       const report = await buildCompletionReport(
         req.auth.organizationId,
@@ -119,6 +131,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
     "/reports/audit/export",
     { preHandler: app.requirePermission("audit.view") },
     async (req, reply) => {
+      assertUnrestricted(req.auth);
       const query = auditExportQuerySchema.parse(req.query);
       const [organization, logs] = await Promise.all([
         prisma.organization.findUniqueOrThrow({

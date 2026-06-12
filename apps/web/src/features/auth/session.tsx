@@ -7,7 +7,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { hasPermission, type Permission } from "@task-tracker/shared";
+import {
+  hasPermission,
+  isRestrictedToOwnTasks,
+  type Permission,
+} from "@task-tracker/shared";
 import {
   api,
   getRefreshToken,
@@ -67,6 +71,9 @@ interface SessionContextValue extends SessionState {
   switchOrg(orgId: string): void;
   reloadSession(): Promise<void>;
   can(permission: Permission): boolean;
+  /** True when the role carries task.own_only: personal tasks and
+   * dashboard only, regardless of other grants. */
+  isRestricted: boolean;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -164,6 +171,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           permission,
         );
       },
+      isRestricted: state.currentOrg
+        ? isRestrictedToOwnTasks({
+            isOwner: state.currentOrg.isOwner,
+            permissions: new Set(state.currentOrg.permissions),
+          })
+        : false,
     }),
     [state, applyAuthPayload, reloadSession],
   );

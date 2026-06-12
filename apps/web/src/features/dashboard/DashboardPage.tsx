@@ -98,8 +98,10 @@ function GroupTable({ title, groups }: { title: string; groups: Group[] }) {
 
 export function DashboardPage() {
   const session = useSession();
-  const showDept = session.can("dashboard.department") || session.can("dashboard.org");
-  const showOrg = session.can("dashboard.org");
+  const showDept =
+    !session.isRestricted &&
+    (session.can("dashboard.department") || session.can("dashboard.org"));
+  const showOrg = !session.isRestricted && session.can("dashboard.org");
 
   const me = useQuery({
     queryKey: ["dashboard", "me"],

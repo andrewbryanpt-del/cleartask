@@ -24,24 +24,27 @@ export function Shell() {
   const session = useSession();
   const org = session.currentOrg;
 
+  const unrestricted = !session.isRestricted;
   const links = [
     { to: "/dashboard", label: "Dashboard", show: true },
     { to: "/tasks", label: "Tasks", show: true },
-    { to: "/templates", label: "Templates", show: true },
+    { to: "/templates", label: "Templates", show: unrestricted },
     {
       to: "/reports",
       label: "Reports",
       show:
-        session.can("dashboard.org") || session.can("report.export") || session.can("audit.view"),
+        unrestricted &&
+        (session.can("dashboard.org") || session.can("report.export") || session.can("audit.view")),
     },
     {
       to: "/admin",
       label: "Admin",
       show:
-        session.can("org.manage") ||
-        session.can("member.manage") ||
-        session.can("member.invite") ||
-        session.can("role.manage"),
+        unrestricted &&
+        (session.can("org.manage") ||
+          session.can("member.manage") ||
+          session.can("member.invite") ||
+          session.can("role.manage")),
     },
     { to: "/settings", label: "Settings", show: true },
   ].filter((l) => l.show);
