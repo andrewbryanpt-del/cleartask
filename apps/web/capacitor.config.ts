@@ -4,6 +4,11 @@ const config: CapacitorConfig = {
   appId: "com.tasktracker.app",
   appName: "Task Tracker",
   webDir: "dist",
+  plugins: {
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "alert"],
+    },
+  },
 };
 
 export default config;

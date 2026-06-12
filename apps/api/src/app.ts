@@ -20,6 +20,7 @@ import recurrenceRoutes from "./modules/recurrence/recurrence.routes";
 import notificationsRoutes from "./modules/notifications/notifications.routes";
 import dashboardRoutes from "./modules/dashboard/dashboard.routes";
 import reportsRoutes from "./modules/reports/reports.routes";
+import pushRoutes from "./modules/push/push.routes";
 
 export async function buildApp() {
   const app = Fastify({
@@ -54,6 +55,7 @@ export async function buildApp() {
     notificationsRoutes,
     dashboardRoutes,
     reportsRoutes,
+    pushRoutes,
   ]) {
     await app.register(routes, { prefix: "/api/v1" });
   }

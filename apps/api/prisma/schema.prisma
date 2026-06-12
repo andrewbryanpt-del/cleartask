@@ -37,6 +37,12 @@ enum PermissionScope {
   DEPARTMENT
 }
 
+enum PushPlatform {
+  WEB
+  ANDROID
+  IOS
+}
+
 // ---------- Tenancy & people ----------
 
 model Organization {
@@ -130,9 +136,28 @@ model Membership {
   comments        TaskComment[]
   notifications   Notification[]
   attachmentViews AttachmentView[]
+  pushDevices     PushDevice[]
 
   @@unique([userId, organizationId])
   @@index([organizationId])
+}
+
+// A device registered for push delivery. `token` is the FCM registration
+// token on Android/iOS, or the Web Push endpoint URL (with its crypto keys
+// alongside) in the browser. Hangs off the membership so notifications stay
+// org-scoped for users in several organizations.
+model PushDevice {
+  id            String       @id @default(uuid())
+  membershipId  String
+  platform      PushPlatform
+  token         String       @unique
+  webPushP256dh String?
+  webPushAuth   String?
+  createdAt     DateTime     @default(now())
+
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@index([membershipId])
 }
 
 // ---------- Custom roles & permissions ----------

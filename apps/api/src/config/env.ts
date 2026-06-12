@@ -20,6 +20,14 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   EMAIL_FROM: z.string().default("Task Tracker <no-reply@localhost>"),
+
+  // Web Push (browser). Generate once with: npx web-push generate-vapid-keys
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().default("mailto:no-reply@localhost"),
+  // FCM HTTP v1 (Android/iOS via Capacitor). Path to a Firebase service
+  // account JSON; the project id is read from the file.
+  FCM_SERVICE_ACCOUNT_PATH: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
