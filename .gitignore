@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Builds
+dist/
+build/
+*.tsbuildinfo
+
+# Environment — never commit secrets
+.env
+.env.local
+.env.*.local
+
+# Prisma
+apps/api/prisma/*.db
+
+# Local file uploads (dev storage driver)
+apps/api/uploads/
+
+# Capacitor native projects are generated; regenerate with `npx cap add ios|android`
+# (Commit them later once native customisation begins — until then keep them out.)
+apps/web/ios/
+apps/web/android/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Logs
+*.log
+npm-debug.log*
