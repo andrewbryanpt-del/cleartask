@@ -46,6 +46,11 @@ export function Shell() {
           session.can("member.invite") ||
           session.can("role.manage")),
     },
+    {
+      to: "/organisation",
+      label: "Organisation",
+      show: session.currentOrg?.isOwner === true,
+    },
     { to: "/settings", label: "Settings", show: true },
   ].filter((l) => l.show);
 

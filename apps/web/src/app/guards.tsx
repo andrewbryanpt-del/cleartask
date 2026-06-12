@@ -45,3 +45,11 @@ export function RequireUnrestricted({ children }: { children: ReactNode }) {
   if (session.isRestricted) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
+
+// Owner-only screens — invited members are turned away regardless of
+// their role's permissions.
+export function RequireOwner({ children }: { children: ReactNode }) {
+  const session = useSession();
+  if (!session.currentOrg?.isOwner) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}

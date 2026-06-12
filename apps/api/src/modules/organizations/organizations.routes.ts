@@ -22,9 +22,12 @@ export default async function organizationsRoutes(app: FastifyInstance) {
     return { ...org, logoKey: undefined, logoUrl: fileUrl(org.logoKey) };
   });
 
+  // Business details and logo are the account owner's alone — invited
+  // members can't edit them whatever their role grants (org.manage still
+  // covers locations and departments).
   app.patch(
     "/organization",
-    { preHandler: app.requirePermission("org.manage") },
+    { preHandler: app.requireOwner },
     async (req) => {
       const input = updateOrganizationSchema.parse(req.body);
       const org = await prisma.organization.update({
@@ -53,7 +56,7 @@ export default async function organizationsRoutes(app: FastifyInstance) {
   // Marks the owner's setup wizard as finished; idempotent.
   app.post(
     "/organization/complete-onboarding",
-    { preHandler: app.requirePermission("org.manage") },
+    { preHandler: app.requireOwner },
     async (req) => {
       const org = await prisma.organization.findUniqueOrThrow({
         where: { id: req.auth.organizationId },
@@ -77,7 +80,7 @@ export default async function organizationsRoutes(app: FastifyInstance) {
 
   app.post(
     "/organization/logo",
-    { preHandler: app.requirePermission("org.manage") },
+    { preHandler: app.requireOwner },
     async (req) => {
       const file = await req.file();
       if (!file) throw badRequest("No file uploaded");

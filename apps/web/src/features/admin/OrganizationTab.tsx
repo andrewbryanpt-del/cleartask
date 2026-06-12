@@ -9,24 +9,12 @@ export function OrganizationTab() {
   const organization = useOrganization();
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: ["organization"] });
 
-  const [orgForm, setOrgForm] = useState<{
-    name: string;
-    industry: string;
-    address: string;
-    phone: string;
-    website: string;
-  } | null>(null);
   const [newLocation, setNewLocation] = useState("");
   const [newDepartment, setNewDepartment] = useState<{ locationId: string; name: string }>({
     locationId: "",
     name: "",
   });
 
-  const saveOrg = useMutation({
-    mutationFn: (body: Record<string, string | null>) =>
-      api("/organization", { method: "PATCH", body }),
-    onSuccess: invalidate,
-  });
   const addLocation = useMutation({
     mutationFn: (name: string) => api("/locations", { method: "POST", body: { name } }),
     onSuccess: () => {
@@ -54,83 +42,11 @@ export function OrganizationTab() {
   if (organization.isLoading) return <Spinner />;
   if (!organization.data) return <ErrorText error={organization.error} />;
   const org = organization.data;
-  const form = orgForm ?? {
-    name: org.name,
-    industry: org.industry ?? "",
-    address: org.address ?? "",
-    phone: org.phone ?? "",
-    website: org.website ?? "",
-  };
 
-  function onSaveOrg(e: FormEvent) {
-    e.preventDefault();
-    saveOrg.mutate({
-      name: form.name,
-      industry: form.industry || null,
-      address: form.address || null,
-      phone: form.phone || null,
-      website: form.website || null,
-    });
-  }
-
+  // Business details (name, industry, contact, logo) are owner-only and
+  // live on the Organisation settings page, not here.
   return (
     <>
-      <div className="card">
-        <h2>Business details</h2>
-        <form onSubmit={onSaveOrg}>
-          <div className="form-row">
-            <div className="field">
-              <label>Business name</label>
-              <input
-                className="input"
-                value={form.name}
-                onChange={(e) => setOrgForm({ ...form, name: e.target.value })}
-                required
-              />
-            </div>
-            <div className="field">
-              <label>Industry</label>
-              <input
-                className="input"
-                value={form.industry}
-                onChange={(e) => setOrgForm({ ...form, industry: e.target.value })}
-              />
-            </div>
-            <div className="field">
-              <label>Address</label>
-              <input
-                className="input"
-                value={form.address}
-                onChange={(e) => setOrgForm({ ...form, address: e.target.value })}
-              />
-            </div>
-            <div className="field">
-              <label>Phone</label>
-              <input
-                className="input"
-                type="tel"
-                value={form.phone}
-                onChange={(e) => setOrgForm({ ...form, phone: e.target.value })}
-              />
-            </div>
-            <div className="field">
-              <label>Website</label>
-              <input
-                className="input"
-                type="url"
-                placeholder="https://example.com"
-                value={form.website}
-                onChange={(e) => setOrgForm({ ...form, website: e.target.value })}
-              />
-            </div>
-          </div>
-          <ErrorText error={saveOrg.error} />
-          <button className="btn btn-primary btn-sm" disabled={saveOrg.isPending}>
-            {saveOrg.isPending ? "Saving…" : "Save"}
-          </button>
-        </form>
-      </div>
-
       <div className="card">
         <h2>Locations & departments</h2>
         <ErrorText

@@ -24,6 +24,9 @@ declare module "fastify" {
   interface FastifyInstance {
     authenticate: Handler;
     requirePermission(permission: Permission): Handler[];
+    // Owner-only routes: stricter than any permission — invited members
+    // are rejected regardless of their role's grants.
+    requireOwner: Handler[];
   }
 }
 
@@ -81,6 +84,15 @@ export default fp(async (app) => {
     async (req: FastifyRequest) => {
       if (!hasPermission(req.auth, permission)) {
         throw forbidden(`Missing permission: ${permission}`);
+      }
+    },
+  ]);
+
+  app.decorate("requireOwner", [
+    app.authenticate,
+    async (req: FastifyRequest) => {
+      if (!req.auth.isOwner) {
+        throw forbidden("Only the account owner can do this");
       }
     },
   ]);

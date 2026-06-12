@@ -13,7 +13,11 @@ export function AdminPage() {
       show: session.can("member.manage") || session.can("member.invite"),
     },
     { id: "roles", label: "Roles", show: session.can("role.manage") },
-    { id: "organization", label: "Organization", show: session.can("org.manage") },
+    {
+      id: "organization",
+      label: "Locations & departments",
+      show: session.can("org.manage"),
+    },
   ].filter((t) => t.show);
   const [active, setActive] = useState(tabs[0]?.id ?? "members");
 
