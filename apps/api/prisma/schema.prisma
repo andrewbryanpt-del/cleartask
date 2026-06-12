@@ -50,6 +50,12 @@ model Organization {
   name      String
   industry  String?
   logoKey   String?
+  address   String?
+  phone     String?
+  website   String?
+  // Set when the owner finishes the setup wizard; null routes owners to
+  // onboarding after registration.
+  onboardedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

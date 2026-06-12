@@ -39,7 +39,39 @@ export default async function organizationsRoutes(app: FastifyInstance) {
         entityId: org.id,
         detail: input,
       });
-      return { id: org.id, name: org.name, industry: org.industry };
+      return {
+        id: org.id,
+        name: org.name,
+        industry: org.industry,
+        address: org.address,
+        phone: org.phone,
+        website: org.website,
+      };
+    },
+  );
+
+  // Marks the owner's setup wizard as finished; idempotent.
+  app.post(
+    "/organization/complete-onboarding",
+    { preHandler: app.requirePermission("org.manage") },
+    async (req) => {
+      const org = await prisma.organization.findUniqueOrThrow({
+        where: { id: req.auth.organizationId },
+      });
+      if (!org.onboardedAt) {
+        await prisma.organization.update({
+          where: { id: org.id },
+          data: { onboardedAt: new Date() },
+        });
+        await recordAudit({
+          organizationId: org.id,
+          actorMembershipId: req.auth.membershipId,
+          action: "organization.onboarded",
+          entityType: "Organization",
+          entityId: org.id,
+        });
+      }
+      return { ok: true };
     },
   );
 

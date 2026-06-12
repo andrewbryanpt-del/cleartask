@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { Shell } from "./Shell";
 import { RequireAuth, RequirePermission, RequireUnrestricted } from "./guards";
 import { LoginPage } from "../features/auth/LoginPage";
+import { OnboardingPage } from "../features/onboarding/OnboardingPage";
 import { RegisterPage } from "../features/auth/RegisterPage";
 import { InvitePage } from "../features/auth/InvitePage";
 import { DashboardPage } from "../features/dashboard/DashboardPage";
@@ -17,6 +18,14 @@ export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
   { path: "/register", element: <RegisterPage /> },
   { path: "/invite/:token", element: <InvitePage /> },
+  {
+    path: "/onboarding",
+    element: (
+      <RequireAuth>
+        <OnboardingPage />
+      </RequireAuth>
+    ),
+  },
   {
     path: "/",
     element: (

@@ -11,6 +11,16 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   if (session.status === "anonymous") {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
+  // New owners go through the setup wizard before anything else; invited
+  // members never see it.
+  const needsOnboarding =
+    session.currentOrg?.isOwner === true && !session.currentOrg.onboarded;
+  if (needsOnboarding && location.pathname !== "/onboarding") {
+    return <Navigate to="/onboarding" replace />;
+  }
+  if (!needsOnboarding && location.pathname === "/onboarding") {
+    return <Navigate to="/dashboard" replace />;
+  }
   return <>{children}</>;
 }
 

@@ -19,6 +19,9 @@ export interface Organization {
   name: string;
   industry: string | null;
   logoUrl: string | null;
+  address: string | null;
+  phone: string | null;
+  website: string | null;
   locations: OrgLocation[];
 }
 

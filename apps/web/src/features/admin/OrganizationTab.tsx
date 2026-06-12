@@ -9,7 +9,13 @@ export function OrganizationTab() {
   const organization = useOrganization();
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: ["organization"] });
 
-  const [orgForm, setOrgForm] = useState<{ name: string; industry: string } | null>(null);
+  const [orgForm, setOrgForm] = useState<{
+    name: string;
+    industry: string;
+    address: string;
+    phone: string;
+    website: string;
+  } | null>(null);
   const [newLocation, setNewLocation] = useState("");
   const [newDepartment, setNewDepartment] = useState<{ locationId: string; name: string }>({
     locationId: "",
@@ -17,7 +23,7 @@ export function OrganizationTab() {
   });
 
   const saveOrg = useMutation({
-    mutationFn: (body: { name: string; industry?: string }) =>
+    mutationFn: (body: Record<string, string | null>) =>
       api("/organization", { method: "PATCH", body }),
     onSuccess: invalidate,
   });
@@ -48,11 +54,23 @@ export function OrganizationTab() {
   if (organization.isLoading) return <Spinner />;
   if (!organization.data) return <ErrorText error={organization.error} />;
   const org = organization.data;
-  const form = orgForm ?? { name: org.name, industry: org.industry ?? "" };
+  const form = orgForm ?? {
+    name: org.name,
+    industry: org.industry ?? "",
+    address: org.address ?? "",
+    phone: org.phone ?? "",
+    website: org.website ?? "",
+  };
 
   function onSaveOrg(e: FormEvent) {
     e.preventDefault();
-    saveOrg.mutate({ name: form.name, industry: form.industry || undefined });
+    saveOrg.mutate({
+      name: form.name,
+      industry: form.industry || null,
+      address: form.address || null,
+      phone: form.phone || null,
+      website: form.website || null,
+    });
   }
 
   return (
@@ -76,6 +94,33 @@ export function OrganizationTab() {
                 className="input"
                 value={form.industry}
                 onChange={(e) => setOrgForm({ ...form, industry: e.target.value })}
+              />
+            </div>
+            <div className="field">
+              <label>Address</label>
+              <input
+                className="input"
+                value={form.address}
+                onChange={(e) => setOrgForm({ ...form, address: e.target.value })}
+              />
+            </div>
+            <div className="field">
+              <label>Phone</label>
+              <input
+                className="input"
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setOrgForm({ ...form, phone: e.target.value })}
+              />
+            </div>
+            <div className="field">
+              <label>Website</label>
+              <input
+                className="input"
+                type="url"
+                placeholder="https://example.com"
+                value={form.website}
+                onChange={(e) => setOrgForm({ ...form, website: e.target.value })}
               />
             </div>
           </div>

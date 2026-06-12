@@ -28,6 +28,7 @@ export default async function usersRoutes(app: FastifyInstance) {
         name: m.organization.name,
         industry: m.organization.industry,
         logoUrl: fileUrl(m.organization.logoKey),
+        onboarded: Boolean(m.organization.onboardedAt),
         membershipId: m.id,
         isOwner: m.isOwner,
         roleName: m.role?.name ?? null,

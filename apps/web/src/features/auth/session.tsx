@@ -26,6 +26,7 @@ export interface SessionOrg {
   name: string;
   industry: string | null;
   logoUrl: string | null;
+  onboarded: boolean;
   membershipId: string;
   isOwner: boolean;
   roleName: string | null;
