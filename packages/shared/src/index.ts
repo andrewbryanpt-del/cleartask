@@ -4,3 +4,5 @@ export * from "./schemas/organization";
 export * from "./schemas/roles";
 export * from "./schemas/invitations";
 export * from "./schemas/users";
+export * from "./schemas/tasks";
+export * from "./schemas/task-templates";

@@ -13,6 +13,9 @@ import locationsRoutes from "./modules/locations/locations.routes";
 import departmentsRoutes from "./modules/departments/departments.routes";
 import auditRoutes from "./modules/audit/audit.routes";
 import filesRoutes from "./modules/attachments/files.routes";
+import attachmentsRoutes from "./modules/attachments/attachments.routes";
+import tasksRoutes from "./modules/tasks/tasks.routes";
+import taskTemplatesRoutes from "./modules/task-templates/task-templates.routes";
 
 export async function buildApp() {
   const app = Fastify({
@@ -40,6 +43,9 @@ export async function buildApp() {
     departmentsRoutes,
     auditRoutes,
     filesRoutes,
+    attachmentsRoutes,
+    tasksRoutes,
+    taskTemplatesRoutes,
   ]) {
     await app.register(routes, { prefix: "/api/v1" });
   }
