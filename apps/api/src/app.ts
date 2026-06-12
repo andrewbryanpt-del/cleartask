@@ -18,6 +18,8 @@ import tasksRoutes from "./modules/tasks/tasks.routes";
 import taskTemplatesRoutes from "./modules/task-templates/task-templates.routes";
 import recurrenceRoutes from "./modules/recurrence/recurrence.routes";
 import notificationsRoutes from "./modules/notifications/notifications.routes";
+import dashboardRoutes from "./modules/dashboard/dashboard.routes";
+import reportsRoutes from "./modules/reports/reports.routes";
 
 export async function buildApp() {
   const app = Fastify({
@@ -50,6 +52,8 @@ export async function buildApp() {
     taskTemplatesRoutes,
     recurrenceRoutes,
     notificationsRoutes,
+    dashboardRoutes,
+    reportsRoutes,
   ]) {
     await app.register(routes, { prefix: "/api/v1" });
   }
