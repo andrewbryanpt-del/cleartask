@@ -6,6 +6,7 @@ export const QUEUES = {
   taskReminder: "task-reminder",
   recurrenceMaterialize: "recurrence-materialize",
   overdueSweep: "overdue-sweep",
+  escalationSweep: "escalation-sweep",
 } as const;
 
 // Singleton set by startJobs() in jobs/index.ts. The enqueue helpers no-op

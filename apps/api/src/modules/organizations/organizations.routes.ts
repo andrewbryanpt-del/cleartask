@@ -49,6 +49,7 @@ export default async function organizationsRoutes(app: FastifyInstance) {
         address: org.address,
         phone: org.phone,
         website: org.website,
+        overdueEscalationDays: org.overdueEscalationDays,
       };
     },
   );

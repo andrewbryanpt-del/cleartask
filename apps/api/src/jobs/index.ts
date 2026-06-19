@@ -10,6 +10,7 @@ import {
 } from "./task-notifications";
 import { materializeDueRules } from "./recurrence";
 import { sweepOverdue } from "./overdue";
+import { sweepEscalation } from "./escalation";
 
 export { enqueueTaskAssigned, scheduleTaskReminders } from "./boss";
 
@@ -36,12 +37,18 @@ export async function startJobs(log: FastifyBaseLogger): Promise<void> {
   await boss.work(QUEUES.overdueSweep, async () => {
     await sweepOverdue();
   });
+  await boss.work(QUEUES.escalationSweep, async () => {
+    await sweepEscalation();
+  });
 
   await boss.schedule(QUEUES.recurrenceMaterialize, "*/5 * * * *");
   await boss.schedule(QUEUES.overdueSweep, "*/5 * * * *");
+  // Escalation runs once per day — hourly is fine since each assignment
+  // only escalates once (escalatedToOwnerAt guard).
+  await boss.schedule(QUEUES.escalationSweep, "0 * * * *");
 
   setBoss(boss);
-  log.info("background jobs started (recurrence, reminders, overdue sweep)");
+  log.info("background jobs started (recurrence, reminders, overdue sweep, escalation)");
 }
 
 export async function stopJobs(): Promise<void> {

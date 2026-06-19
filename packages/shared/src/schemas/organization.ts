@@ -13,6 +13,13 @@ export const updateOrganizationSchema = z.object({
     .nullable()
     .optional()
     .or(z.literal("").transform(() => null)),
+  overdueEscalationDays: z
+    .number()
+    .int()
+    .min(1)
+    .max(365)
+    .nullable()
+    .optional(),
 });
 export type UpdateOrganizationInput = z.infer<typeof updateOrganizationSchema>;
 

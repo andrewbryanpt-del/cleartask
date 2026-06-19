@@ -22,6 +22,7 @@ export interface Organization {
   address: string | null;
   phone: string | null;
   website: string | null;
+  overdueEscalationDays: number | null;
   locations: OrgLocation[];
 }
 

@@ -20,6 +20,7 @@ export function OrganisationSettingsPage() {
     address: string;
     phone: string;
     website: string;
+    overdueEscalationDays: string;
   } | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -29,7 +30,7 @@ export function OrganisationSettingsPage() {
   };
 
   const save = useMutation({
-    mutationFn: (body: Record<string, string | null>) =>
+    mutationFn: (body: Record<string, string | number | null>) =>
       api("/organization", { method: "PATCH", body }),
     onSuccess: () => {
       setSaved(true);
@@ -59,6 +60,10 @@ export function OrganisationSettingsPage() {
     address: org.address ?? "",
     phone: org.phone ?? "",
     website: org.website ?? "",
+    overdueEscalationDays:
+      org.overdueEscalationDays != null
+        ? String(org.overdueEscalationDays)
+        : "",
   };
 
   const set =
@@ -67,12 +72,15 @@ export function OrganisationSettingsPage() {
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
+    const days = parseInt(values.overdueEscalationDays, 10);
     save.mutate({
       name: values.name,
       industry: values.industry || null,
       address: values.address || null,
       phone: values.phone || null,
       website: values.website || null,
+      overdueEscalationDays:
+        values.overdueEscalationDays && !isNaN(days) ? days : null,
     });
   }
 
@@ -123,6 +131,38 @@ export function OrganisationSettingsPage() {
           />
         </div>
         <ErrorText error={uploadLogo.error} />
+      </div>
+
+      <div className="card">
+        <h2>Overdue escalation</h2>
+        <p className="small muted" style={{ marginTop: 0 }}>
+          Notify you when a task is still incomplete this many days after its
+          due date. Leave blank to disable escalation notifications.
+        </p>
+        <form onSubmit={onSubmit}>
+          <div className="form-row">
+            <div className="field">
+              <label>Days after due date</label>
+              <input
+                className="input"
+                type="number"
+                min={1}
+                max={365}
+                placeholder="e.g. 3"
+                value={values.overdueEscalationDays}
+                onChange={set("overdueEscalationDays")}
+                style={{ maxWidth: 140 }}
+              />
+            </div>
+          </div>
+          <ErrorText error={save.error} />
+          <div className="row">
+            <button className="btn btn-primary" disabled={save.isPending}>
+              {save.isPending ? "Saving…" : "Save changes"}
+            </button>
+            {saved && <span className="badge badge-success">Saved</span>}
+          </div>
+        </form>
       </div>
 
       <div className="card">

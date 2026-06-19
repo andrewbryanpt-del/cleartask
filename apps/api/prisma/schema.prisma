@@ -55,7 +55,10 @@ model Organization {
   website   String?
   // Set when the owner finishes the setup wizard; null routes owners to
   // onboarding after registration.
-  onboardedAt DateTime?
+  onboardedAt              DateTime?
+  // Notify the owner when a task is this many days past due and still
+  // incomplete. Null disables escalation for this org.
+  overdueEscalationDays    Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -272,7 +275,9 @@ model TaskAssignment {
   sourceDepartmentId String?
   completedAt        DateTime?
   // Set by the overdue sweep so each assignment is only escalated once.
-  overdueNotifiedAt  DateTime?
+  overdueNotifiedAt    DateTime?
+  // Set by the escalation sweep so the owner is only notified once per assignment.
+  escalatedToOwnerAt   DateTime?
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
