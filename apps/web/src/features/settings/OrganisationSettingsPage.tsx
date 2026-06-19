@@ -14,27 +14,39 @@ export function OrganisationSettingsPage() {
   const organization = useOrganization();
   const logoInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState<{
+  const [detailsForm, setDetailsForm] = useState<{
     name: string;
     industry: string;
     address: string;
     phone: string;
     website: string;
-    overdueEscalationDays: string;
   } | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [detailsSaved, setDetailsSaved] = useState(false);
+
+  const [escalationDays, setEscalationDays] = useState<string | null>(null);
+  const [escalationSaved, setEscalationSaved] = useState(false);
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["organization"] });
     void session.reloadSession();
   };
 
-  const save = useMutation({
-    mutationFn: (body: Record<string, string | number | null>) =>
+  const saveDetails = useMutation({
+    mutationFn: (body: Record<string, string | null>) =>
       api("/organization", { method: "PATCH", body }),
     onSuccess: () => {
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
+      setDetailsSaved(true);
+      setTimeout(() => setDetailsSaved(false), 2500);
+      invalidate();
+    },
+  });
+
+  const saveEscalation = useMutation({
+    mutationFn: (body: { overdueEscalationDays: number | null }) =>
+      api("/organization", { method: "PATCH", body }),
+    onSuccess: () => {
+      setEscalationSaved(true);
+      setTimeout(() => setEscalationSaved(false), 2500);
       invalidate();
     },
   });
@@ -54,33 +66,37 @@ export function OrganisationSettingsPage() {
   if (organization.isLoading) return <Spinner />;
   if (!organization.data) return <ErrorText error={organization.error} />;
   const org = organization.data;
-  const values = form ?? {
+
+  const details = detailsForm ?? {
     name: org.name,
     industry: org.industry ?? "",
     address: org.address ?? "",
     phone: org.phone ?? "",
     website: org.website ?? "",
-    overdueEscalationDays:
-      org.overdueEscalationDays != null
-        ? String(org.overdueEscalationDays)
-        : "",
   };
+  const setDetail =
+    (key: keyof typeof details) => (e: { target: { value: string } }) =>
+      setDetailsForm({ ...details, [key]: e.target.value });
 
-  const set =
-    (key: keyof typeof values) => (e: { target: { value: string } }) =>
-      setForm({ ...values, [key]: e.target.value });
+  const currentEscalationDays =
+    escalationDays ?? (org.overdueEscalationDays != null ? String(org.overdueEscalationDays) : "");
 
-  function onSubmit(e: FormEvent) {
+  function onSubmitDetails(e: FormEvent) {
     e.preventDefault();
-    const days = parseInt(values.overdueEscalationDays, 10);
-    save.mutate({
-      name: values.name,
-      industry: values.industry || null,
-      address: values.address || null,
-      phone: values.phone || null,
-      website: values.website || null,
-      overdueEscalationDays:
-        values.overdueEscalationDays && !isNaN(days) ? days : null,
+    saveDetails.mutate({
+      name: details.name,
+      industry: details.industry || null,
+      address: details.address || null,
+      phone: details.phone || null,
+      website: details.website || null,
+    });
+  }
+
+  function onSubmitEscalation(e: FormEvent) {
+    e.preventDefault();
+    const days = parseInt(currentEscalationDays, 10);
+    saveEscalation.mutate({
+      overdueEscalationDays: currentEscalationDays && !isNaN(days) ? days : null,
     });
   }
 
@@ -134,61 +150,58 @@ export function OrganisationSettingsPage() {
       </div>
 
       <div className="card">
-        <h2>Overdue escalation</h2>
-        <p className="small muted" style={{ marginTop: 0 }}>
-          Notify you when a task is still incomplete this many days after its
-          due date. Leave blank to disable escalation notifications.
-        </p>
-        <form onSubmit={onSubmit}>
-          <div className="form-row">
-            <div className="field">
-              <label>Days after due date</label>
+        <h2>Escalation settings</h2>
+        <form onSubmit={onSubmitEscalation}>
+          <div className="field">
+            <label>Escalate overdue tasks to me after</label>
+            <div className="row" style={{ alignItems: "center", gap: 8 }}>
               <input
                 className="input"
                 type="number"
                 min={1}
                 max={365}
-                placeholder="e.g. 3"
-                value={values.overdueEscalationDays}
-                onChange={set("overdueEscalationDays")}
-                style={{ maxWidth: 140 }}
+                placeholder="—"
+                value={currentEscalationDays}
+                onChange={(e) => setEscalationDays(e.target.value)}
+                style={{ maxWidth: 80 }}
               />
+              <span>days</span>
             </div>
           </div>
-          <ErrorText error={save.error} />
-          <div className="row">
-            <button className="btn btn-primary" disabled={save.isPending}>
-              {save.isPending ? "Saving…" : "Save changes"}
+          <ErrorText error={saveEscalation.error} />
+          <div className="row" style={{ marginTop: 16 }}>
+            <button className="btn btn-primary" disabled={saveEscalation.isPending}>
+              {saveEscalation.isPending ? "Saving…" : "Save"}
             </button>
-            {saved && <span className="badge badge-success">Saved</span>}
+            {escalationSaved && <span className="badge badge-success">Saved</span>}
           </div>
         </form>
       </div>
 
       <div className="card">
         <h2>Business details</h2>
-        <form onSubmit={onSubmit}>
+        <form onSubmit={onSubmitDetails}>
           <div className="form-row">
             <div className="field">
               <label>Business name</label>
-              <input className="input" value={values.name} onChange={set("name")} required />
+              <input className="input" value={details.name} onChange={setDetail("name")} required />
             </div>
             <div className="field">
               <label>Industry</label>
               <input
                 className="input"
-                value={values.industry}
-                onChange={set("industry")}
+                value={details.industry}
+                onChange={setDetail("industry")}
                 placeholder="Hospitality, retail, healthcare…"
               />
             </div>
             <div className="field">
               <label>Address</label>
-              <input className="input" value={values.address} onChange={set("address")} />
+              <input className="input" value={details.address} onChange={setDetail("address")} />
             </div>
             <div className="field">
               <label>Phone number</label>
-              <input className="input" type="tel" value={values.phone} onChange={set("phone")} />
+              <input className="input" type="tel" value={details.phone} onChange={setDetail("phone")} />
             </div>
             <div className="field">
               <label>Website</label>
@@ -196,17 +209,17 @@ export function OrganisationSettingsPage() {
                 className="input"
                 type="url"
                 placeholder="https://example.com"
-                value={values.website}
-                onChange={set("website")}
+                value={details.website}
+                onChange={setDetail("website")}
               />
             </div>
           </div>
-          <ErrorText error={save.error} />
+          <ErrorText error={saveDetails.error} />
           <div className="row">
-            <button className="btn btn-primary" disabled={save.isPending}>
-              {save.isPending ? "Saving…" : "Save changes"}
+            <button className="btn btn-primary" disabled={saveDetails.isPending}>
+              {saveDetails.isPending ? "Saving…" : "Save changes"}
             </button>
-            {saved && <span className="badge badge-success">Saved</span>}
+            {detailsSaved && <span className="badge badge-success">Saved</span>}
           </div>
         </form>
       </div>
