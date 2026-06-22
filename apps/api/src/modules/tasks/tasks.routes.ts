@@ -16,6 +16,7 @@ import { prisma } from "../../lib/prisma";
 import { badRequest, forbidden, notFound } from "../../lib/errors";
 import { fileUrl, saveFile } from "../../lib/storage";
 import { recordAudit } from "../audit/audit.service";
+import { nextOccurrence, parseRule } from "../../lib/recurrence";
 import {
   enqueueTaskAssigned,
   scheduleTaskReminders,
@@ -169,7 +170,77 @@ export default async function tasksRoutes(app: FastifyInstance) {
         input.assigneeDepartmentIds,
       );
 
+      let createdRecurrenceRuleId: string | null = null;
+
       const task = await prisma.$transaction(async (tx) => {
+        const reminderOffsetsMinutes =
+          input.reminderOffsetsMinutes ??
+          template?.reminderOffsetsMinutes ??
+          [];
+
+        let taskTemplateId = template?.id ?? null;
+        let recurrenceRuleId: string | undefined;
+
+        if (input.recurrence) {
+          const timezone = input.recurrence.timezone ?? "UTC";
+          const dueAt = new Date(input.dueAt!);
+
+          if (!taskTemplateId) {
+            const adHocTemplate = await tx.taskTemplate.create({
+              data: {
+                organizationId: orgId,
+                title,
+                description: input.description ?? null,
+                reminderOffsetsMinutes,
+                createdByMembershipId: req.auth.membershipId,
+              },
+            });
+            taskTemplateId = adHocTemplate.id;
+          }
+
+          const anchorTemplate = await tx.taskTemplate.findFirstOrThrow({
+            where: { id: taskTemplateId, organizationId: orgId },
+          });
+
+          try {
+            parseRule(
+              input.recurrence.rrule,
+              timezone,
+              anchorTemplate.createdAt,
+            );
+          } catch (err) {
+            throw badRequest(
+              `Invalid recurrence rule: ${err instanceof Error ? err.message : "unparseable"}`,
+            );
+          }
+
+          const nextRunAt = nextOccurrence(
+            input.recurrence.rrule,
+            timezone,
+            dueAt,
+            anchorTemplate.createdAt,
+          );
+          if (!nextRunAt) {
+            throw badRequest("The recurrence rule has no future occurrences");
+          }
+
+          const rule = await tx.recurrenceRule.create({
+            data: {
+              organizationId: orgId,
+              templateId: taskTemplateId,
+              rrule: input.recurrence.rrule,
+              timezone,
+              locationId,
+              departmentId: input.departmentId,
+              assigneeMembershipIds: input.assigneeMembershipIds,
+              assigneeDepartmentIds: input.assigneeDepartmentIds,
+              nextRunAt,
+            },
+          });
+          recurrenceRuleId = rule.id;
+          createdRecurrenceRuleId = rule.id;
+        }
+
         const created = await tx.task.create({
           data: {
             organizationId: orgId,
@@ -178,12 +249,10 @@ export default async function tasksRoutes(app: FastifyInstance) {
             dueAt: input.dueAt ? new Date(input.dueAt) : undefined,
             locationId,
             departmentId: input.departmentId,
-            templateId: template?.id,
+            templateId: taskTemplateId,
+            recurrenceRuleId,
             priority: input.priority ?? "NORMAL",
-            reminderOffsetsMinutes:
-              input.reminderOffsetsMinutes ??
-              template?.reminderOffsetsMinutes ??
-              [],
+            reminderOffsetsMinutes,
             createdByMembershipId: req.auth.membershipId,
           },
         });
@@ -222,10 +291,25 @@ export default async function tasksRoutes(app: FastifyInstance) {
         entityId: task.id,
         detail: {
           title,
-          templateId: template?.id ?? null,
+          templateId: task.templateId ?? null,
           assigneeCount: targets.length,
+          recurrenceRuleId: createdRecurrenceRuleId,
         },
       });
+      if (createdRecurrenceRuleId) {
+        await recordAudit({
+          organizationId: orgId,
+          actorMembershipId: req.auth.membershipId,
+          action: "recurrence.created",
+          entityType: "RecurrenceRule",
+          entityId: createdRecurrenceRuleId,
+          detail: {
+            taskId: task.id,
+            rrule: input.recurrence!.rrule,
+            timezone: input.recurrence!.timezone ?? "UTC",
+          },
+        });
+      }
       await enqueueTaskAssigned(
         task.id,
         targets.map((t) => t.membershipId),

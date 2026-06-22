@@ -28,6 +28,11 @@ const reminderOffsets = z
   .array(z.number().int().min(0).max(525_600))
   .max(10);
 
+const taskRecurrenceSchema = z.object({
+  rrule: z.string().trim().min(1).max(500),
+  timezone: z.string().trim().min(1).max(64).optional(),
+});
+
 export const createTaskSchema = z
   .object({
     // Title may be omitted when templateId supplies it.
@@ -41,12 +46,28 @@ export const createTaskSchema = z
     reminderOffsetsMinutes: reminderOffsets.optional(),
     assigneeMembershipIds: z.array(z.string().uuid()).max(200).default([]),
     assigneeDepartmentIds: z.array(z.string().uuid()).max(50).default([]),
+    recurrence: taskRecurrenceSchema.optional(),
   })
   .refine((v) => v.title !== undefined || v.templateId !== undefined, {
     message: "Either a title or a template is required",
     path: ["title"],
-  });
+  })
+  .refine((v) => !v.recurrence || v.dueAt !== undefined, {
+    message: "A due date is required for recurring tasks",
+    path: ["dueAt"],
+  })
+  .refine(
+    (v) =>
+      !v.recurrence ||
+      v.assigneeMembershipIds.length > 0 ||
+      v.assigneeDepartmentIds.length > 0,
+    {
+      message: "At least one assignee or department is required for recurring tasks",
+      path: ["assigneeMembershipIds"],
+    },
+  );
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
+export type TaskRecurrenceInput = z.infer<typeof taskRecurrenceSchema>;
 
 export const updateTaskSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),

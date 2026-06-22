@@ -7,6 +7,7 @@ export * from "./schemas/users";
 export * from "./schemas/tasks";
 export * from "./schemas/task-templates";
 export * from "./schemas/recurrence";
+export * from "./recurrence/build-rrule";
 export * from "./schemas/notifications";
 export * from "./schemas/announcements";
 export * from "./schemas/reports";
