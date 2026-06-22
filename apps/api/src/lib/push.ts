@@ -24,28 +24,56 @@ if (webPushEnabled) {
   );
 }
 
-let fcm: { auth: GoogleAuth; projectId: string } | null = null;
-if (env.FCM_SERVICE_ACCOUNT_PATH) {
-  try {
-    const serviceAccount = JSON.parse(
-      readFileSync(env.FCM_SERVICE_ACCOUNT_PATH, "utf8"),
-    ) as { project_id: string };
-    fcm = {
+function loadFcmCredentials(): { projectId: string; credentials: object } | null {
+  if (env.FCM_SERVICE_ACCOUNT_JSON) {
+    try {
+      const credentials = JSON.parse(env.FCM_SERVICE_ACCOUNT_JSON) as {
+        project_id: string;
+      };
+      return { projectId: credentials.project_id, credentials };
+    } catch (err) {
+      console.error("[push] failed to parse FCM_SERVICE_ACCOUNT_JSON:", err);
+      return null;
+    }
+  }
+  if (env.FCM_SERVICE_ACCOUNT_PATH) {
+    try {
+      const credentials = JSON.parse(
+        readFileSync(env.FCM_SERVICE_ACCOUNT_PATH, "utf8"),
+      ) as { project_id: string };
+      return { projectId: credentials.project_id, credentials };
+    } catch (err) {
+      console.error("[push] failed to load FCM service account file:", err);
+      return null;
+    }
+  }
+  return null;
+}
+
+const fcmConfig = loadFcmCredentials();
+const fcm = fcmConfig
+  ? {
       auth: new GoogleAuth({
-        keyFile: env.FCM_SERVICE_ACCOUNT_PATH,
+        credentials: fcmConfig.credentials,
         scopes: ["https://www.googleapis.com/auth/firebase.messaging"],
       }),
-      projectId: serviceAccount.project_id,
-    };
-  } catch (err) {
-    console.error("[push] failed to load FCM service account:", err);
-  }
-}
+      projectId: fcmConfig.projectId,
+    }
+  : null;
 
 async function dropDevice(device: PushDevice): Promise<void> {
   await prisma.pushDevice
     .delete({ where: { id: device.id } })
     .catch(() => undefined);
+}
+
+function isLegacyWebPush(device: PushDevice): boolean {
+  return Boolean(
+    device.platform === "WEB" &&
+      device.webPushP256dh &&
+      device.webPushAuth &&
+      device.token.startsWith("https://"),
+  );
 }
 
 async function sendWebPush(
@@ -75,6 +103,9 @@ async function sendFcm(
 ): Promise<void> {
   if (!fcm) return;
   const accessToken = await fcm.auth.getAccessToken();
+  const taskPath = payload.taskId ? `/tasks/${payload.taskId}` : "/";
+  const link = `${env.WEB_ORIGIN.replace(/\/$/, "")}${taskPath}`;
+
   const res = await fetch(
     `https://fcm.googleapis.com/v1/projects/${fcm.projectId}/messages:send`,
     {
@@ -90,7 +121,17 @@ async function sendFcm(
           // FCM data values must all be strings.
           data: {
             type: payload.type,
+            title: payload.title,
+            body: payload.body ?? "",
             ...(payload.taskId ? { taskId: payload.taskId } : {}),
+          },
+          webpush: {
+            fcmOptions: { link },
+            notification: {
+              title: payload.title,
+              body: payload.body ?? "",
+              icon: "/icons/icon-192.png",
+            },
           },
         },
       }),
@@ -115,10 +156,14 @@ export async function sendPushToMembership(
   });
   for (const device of devices) {
     try {
-      if (device.platform === "WEB") await sendWebPush(device, payload);
+      if (isLegacyWebPush(device)) await sendWebPush(device, payload);
       else await sendFcm(device, payload);
     } catch (err) {
       console.error(`[push] delivery to device ${device.id} failed:`, err);
     }
   }
+}
+
+export function isFcmConfigured(): boolean {
+  return fcm !== null;
 }

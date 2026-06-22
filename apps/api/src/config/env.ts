@@ -18,13 +18,25 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default("ClearTask <noreply@cleartask.com.au>"),
 
-  // Web Push (browser). Generate once with: npx web-push generate-vapid-keys
+  // Web Push (legacy browser path). Generate once with: npx web-push generate-vapid-keys
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().default("mailto:no-reply@localhost"),
-  // FCM HTTP v1 (Android/iOS via Capacitor). Path to a Firebase service
-  // account JSON; the project id is read from the file.
+  // FCM HTTP v1 (web via Firebase SDK, Android/iOS via Capacitor).
+  // Provide either a path to the service account JSON file or the JSON inline
+  // (inline is easier on Railway).
   FCM_SERVICE_ACCOUNT_PATH: z.string().optional(),
+  FCM_SERVICE_ACCOUNT_JSON: z.string().optional(),
+
+  // Firebase web push (public values — served to browsers at runtime).
+  FIREBASE_WEB_API_KEY: z.string().optional(),
+  FIREBASE_WEB_AUTH_DOMAIN: z.string().optional(),
+  FIREBASE_WEB_PROJECT_ID: z.string().optional(),
+  FIREBASE_WEB_STORAGE_BUCKET: z.string().optional(),
+  FIREBASE_WEB_MESSAGING_SENDER_ID: z.string().optional(),
+  FIREBASE_WEB_APP_ID: z.string().optional(),
+  FIREBASE_WEB_MEASUREMENT_ID: z.string().optional(),
+  FIREBASE_WEB_VAPID_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

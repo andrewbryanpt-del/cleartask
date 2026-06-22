@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import type { RegisterPushDeviceInput } from "@task-tracker/shared";
 import { api } from "../../lib/api";
 import { enablePush } from "../../lib/push";
+import type { PushWebConfig } from "../../lib/firebase";
 import { useSession } from "../auth/session";
 import { ErrorText } from "../../components/ui";
 import { AuthImage } from "../../components/AuthImage";
@@ -13,6 +14,7 @@ export function SettingsPage() {
   const navigate = useNavigate();
   const [name, setName] = useState(session.user?.name ?? "");
   const [pushState, setPushState] = useState<"idle" | "busy" | "enabled" | "failed">("idle");
+  const [pushError, setPushError] = useState<string | null>(null);
   const avatarInput = useRef<HTMLInputElement>(null);
 
   const saveProfile = useMutation({
@@ -31,16 +33,25 @@ export function SettingsPage() {
 
   async function onEnablePush() {
     setPushState("busy");
+    setPushError(null);
     try {
-      const ok = await enablePush({
+      const result = await enablePush({
         register: (input: RegisterPushDeviceInput) =>
           api("/push-devices", { method: "POST", body: input }).then(() => undefined),
+        getWebConfig: () =>
+          api<PushWebConfig | null>("/push/web-config").catch(() => null),
         getVapidPublicKey: () =>
           api<{ publicKey: string | null }>("/push/vapid-public-key").then((r) => r.publicKey),
       });
-      setPushState(ok ? "enabled" : "failed");
-    } catch {
+      if (result.ok) {
+        setPushState("enabled");
+      } else {
+        setPushState("failed");
+        setPushError(result.reason);
+      }
+    } catch (err) {
       setPushState("failed");
+      setPushError(err instanceof Error ? err.message : "Unexpected error");
     }
   }
 
@@ -134,7 +145,7 @@ export function SettingsPage() {
           {pushState === "enabled" && <span className="badge badge-success">Enabled on this device</span>}
           {pushState === "failed" && (
             <span className="badge badge-warning">
-              Not available (denied, unsupported, or not configured)
+              {pushError ?? "Not available (denied, unsupported, or not configured)"}
             </span>
           )}
         </div>

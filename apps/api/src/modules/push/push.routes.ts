@@ -5,14 +5,24 @@ import {
 } from "@task-tracker/shared";
 import { prisma } from "../../lib/prisma";
 import { env } from "../../config/env";
+import { getFirebaseWebConfig } from "../../lib/firebase-web-config";
 
 export default async function pushRoutes(app: FastifyInstance) {
+  // Public — the service worker and client fetch Firebase config at runtime
+  // so it does not depend on Vite build-time env injection.
+  app.get("/push/web-config", async () => getFirebaseWebConfig());
+
   // The browser needs the VAPID public key to subscribe; null means web
   // push isn't configured on this deployment.
   app.get(
     "/push/vapid-public-key",
     { preHandler: app.authenticate },
-    async () => ({ publicKey: env.VAPID_PUBLIC_KEY ?? null }),
+    async () => ({
+      publicKey: env.VAPID_PUBLIC_KEY ?? null,
+      fcmConfigured: Boolean(
+        env.FCM_SERVICE_ACCOUNT_JSON || env.FCM_SERVICE_ACCOUNT_PATH,
+      ),
+    }),
   );
 
   // Registering is an upsert on the token: a token re-registered after the
