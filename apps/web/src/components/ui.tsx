@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { PRIORITY_LABELS, type TaskPriorityValue } from "@task-tracker/shared";
 import { ApiError } from "../lib/api";
 
 export function Spinner() {
@@ -29,25 +30,29 @@ export function ErrorText({ error }: { error: unknown }) {
 export function Dialog({
   title,
   onClose,
+  hideClose,
   children,
 }: {
   title: string;
   onClose: () => void;
+  hideClose?: boolean;
   children: ReactNode;
 }) {
   return (
     <div
       className="overlay"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (!hideClose && e.target === e.currentTarget) onClose();
       }}
     >
       <div className="dialog" role="dialog" aria-label={title}>
         <div className="row" style={{ justifyContent: "space-between", marginBottom: "0.5rem" }}>
           <h2 style={{ margin: 0 }}>{title}</h2>
-          <button className="btn btn-sm" onClick={onClose} aria-label="Close">
-            ✕
-          </button>
+          {!hideClose && (
+            <button className="btn btn-sm" onClick={onClose} aria-label="Close">
+              ✕
+            </button>
+          )}
         </div>
         {children}
       </div>
@@ -65,6 +70,19 @@ export function StatusBadge({ status }: { status: string }) {
   const label =
     status === "COMPLETED" ? "Completed" : status === "IN_PROGRESS" ? "In progress" : "Not started";
   return <span className={cls}>{label}</span>;
+}
+
+export function PriorityBadge({ priority }: { priority: TaskPriorityValue | string }) {
+  const p = priority as TaskPriorityValue;
+  const cls =
+    p === "URGENT"
+      ? "badge badge-priority-urgent"
+      : p === "HIGH"
+        ? "badge badge-priority-high"
+        : p === "LOW"
+          ? "badge badge-priority-low"
+          : "badge badge-priority-normal";
+  return <span className={cls}>{PRIORITY_LABELS[p] ?? priority}</span>;
 }
 
 export function ConfirmButton({

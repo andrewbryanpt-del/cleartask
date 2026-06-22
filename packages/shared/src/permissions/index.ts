@@ -15,6 +15,7 @@ export const PERMISSIONS = {
   "dashboard.department": "View dashboards for own departments",
   "report.export": "Export PDF and Excel reports",
   "audit.view": "View the audit trail",
+  "announcement.manage": "Post and manage announcements on the noticeboard",
   "task.own_only":
     "Restriction: only see and act on tasks assigned to you personally, with a personal dashboard only — overrides team and org-wide visibility",
 } as const;

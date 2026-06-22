@@ -66,6 +66,9 @@ export async function sweepEscalation(now: Date = new Date()): Promise<void> {
         title: `Escalation: ${task.title}`,
         body: `${assignment.membership.user.name}${deptClause} has not completed "${task.title}" — ${daysOverdue} day${daysOverdue !== 1 ? "s" : ""} overdue.`,
         taskId: task.id,
+        assigneeName: assignment.membership.user.name,
+        departmentName: task.department?.name,
+        daysOverdue,
       });
     }
   }

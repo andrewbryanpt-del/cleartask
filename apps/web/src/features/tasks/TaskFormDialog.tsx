@@ -22,6 +22,7 @@ export function TaskFormDialog({
     templateId: "",
     title: "",
     description: "",
+    priority: "NORMAL" as "URGENT" | "HIGH" | "NORMAL" | "LOW",
     dueAt: "",
     departmentId: "",
     reminders: new Set<number>(),
@@ -43,6 +44,7 @@ export function TaskFormDialog({
           templateId: form.templateId || undefined,
           title: form.title || undefined,
           description: form.description || undefined,
+          priority: form.priority,
           dueAt: localInputToIso(form.dueAt),
           departmentId: form.departmentId || undefined,
           reminderOffsetsMinutes: form.reminders.size ? [...form.reminders] : undefined,
@@ -108,6 +110,24 @@ export function TaskFormDialog({
         </div>
         <div className="form-row">
           <div className="field">
+            <label>Priority</label>
+            <select
+              className="input"
+              value={form.priority}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  priority: e.target.value as typeof f.priority,
+                }))
+              }
+            >
+              <option value="URGENT">Urgent</option>
+              <option value="HIGH">High</option>
+              <option value="NORMAL">Normal</option>
+              <option value="LOW">Low</option>
+            </select>
+          </div>
+          <div className="field">
             <label>Due</label>
             <input
               className="input"
@@ -116,21 +136,21 @@ export function TaskFormDialog({
               onChange={(e) => setForm((f) => ({ ...f, dueAt: e.target.value }))}
             />
           </div>
-          <div className="field">
-            <label>Department (scope)</label>
-            <select
-              className="input"
-              value={form.departmentId}
-              onChange={(e) => setForm((f) => ({ ...f, departmentId: e.target.value }))}
-            >
-              <option value="">—</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.locationName} / {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
+        </div>
+        <div className="field">
+          <label>Department (scope)</label>
+          <select
+            className="input"
+            value={form.departmentId}
+            onChange={(e) => setForm((f) => ({ ...f, departmentId: e.target.value }))}
+          >
+            <option value="">—</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.locationName} / {d.name}
+              </option>
+            ))}
+          </select>
         </div>
         {form.dueAt && (
           <div className="field">

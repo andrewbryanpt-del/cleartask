@@ -168,7 +168,53 @@ export default async function attachmentsRoutes(app: FastifyInstance) {
         membershipId: v.membership.id,
         name: v.membership.user.name,
         viewedAt: v.viewedAt,
+        acknowledgedAt: v.acknowledgedAt,
       }));
+    },
+  );
+
+  // Explicit "I have read and understood this" acknowledgement for SOPs/docs.
+  app.post<{ Params: { attachmentId: string } }>(
+    "/attachments/:attachmentId/acknowledge",
+    { preHandler: app.authenticate },
+    async (req, reply) => {
+      const attachment = await prisma.attachment.findFirst({
+        where: {
+          id: req.params.attachmentId,
+          organizationId: req.auth.organizationId,
+        },
+      });
+      if (!attachment) throw notFound("Attachment not found");
+      if (attachment.taskId) {
+        await getVisibleTask(req.auth, attachment.taskId);
+      }
+
+      const now = new Date();
+      const view = await prisma.attachmentView.upsert({
+        where: {
+          attachmentId_membershipId: {
+            attachmentId: attachment.id,
+            membershipId: req.auth.membershipId,
+          },
+        },
+        create: {
+          attachmentId: attachment.id,
+          membershipId: req.auth.membershipId,
+          acknowledgedAt: now,
+        },
+        update: { acknowledgedAt: now },
+      });
+      await recordAudit({
+        organizationId: req.auth.organizationId,
+        actorMembershipId: req.auth.membershipId,
+        action: "attachment.acknowledged",
+        entityType: "Attachment",
+        entityId: attachment.id,
+        detail: { taskId: attachment.taskId, fileName: attachment.fileName },
+      });
+      return reply.status(201).send({
+        acknowledgedAt: view.acknowledgedAt,
+      });
     },
   );
 

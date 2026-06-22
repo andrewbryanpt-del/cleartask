@@ -107,7 +107,11 @@ export const taskDetailInclude = {
     orderBy: { createdAt: "asc" },
   },
   attachments: {
-    include: { views: { select: { membershipId: true, viewedAt: true } } },
+    include: {
+      views: {
+        select: { membershipId: true, viewedAt: true, acknowledgedAt: true },
+      },
+    },
   },
 } satisfies Prisma.TaskInclude;
 

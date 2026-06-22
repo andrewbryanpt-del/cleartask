@@ -30,16 +30,16 @@ interface Group extends Summary {
 
 function StatCards({ summary }: { summary: Summary }) {
   const stats = [
-    { label: "Assignments", value: summary.total },
-    { label: "Completed", value: summary.completed },
-    { label: "In progress", value: summary.inProgress },
-    { label: "Overdue", value: summary.overdue },
-    { label: "Completion", value: fmtPercent(summary.completionRate) },
+    { label: "Assignments", value: summary.total, className: "" },
+    { label: "Completed", value: summary.completed, className: "stat-success" },
+    { label: "In progress", value: summary.inProgress, className: "" },
+    { label: "Overdue", value: summary.overdue, className: "stat-overdue" },
+    { label: "Completion", value: fmtPercent(summary.completionRate), className: "" },
   ];
   return (
     <div className="stat-grid">
       {stats.map((s) => (
-        <div className="stat" key={s.label}>
+        <div className={`stat ${s.className}`.trim()} key={s.label}>
           <div className="stat-value">{s.value}</div>
           <div className="stat-label">{s.label}</div>
         </div>
@@ -138,7 +138,7 @@ export function DashboardPage() {
 
       {me.data && (
         <>
-          <h2>My work</h2>
+          <h2 className="page-section-title">My work</h2>
           <StatCards summary={me.data.summary} />
           <TaskRefList title="Overdue" items={me.data.overdue} />
           <TaskRefList title="Coming up" items={me.data.upcoming} />
@@ -147,7 +147,7 @@ export function DashboardPage() {
 
       {showOrg && org.data && (
         <>
-          <h2>Organization</h2>
+          <h2 className="page-section-title">Organization</h2>
           <StatCards summary={org.data.summary} />
           <GroupTable title="By department" groups={org.data.byDepartment} />
           <GroupTable title="By location" groups={org.data.byLocation} />
@@ -157,7 +157,7 @@ export function DashboardPage() {
 
       {showDept && !showOrg && dept.data && (
         <>
-          <h2>My departments</h2>
+          <h2 className="page-section-title">My departments</h2>
           {dept.data.departments.map((d) => (
             <div key={d.department.id}>
               <h3>{d.department.name}</h3>

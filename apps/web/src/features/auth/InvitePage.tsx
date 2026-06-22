@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { useSession } from "./session";
 import { ErrorText, Spinner } from "../../components/ui";
+import { Logo } from "../../components/Logo";
 
 interface InviteInfo {
   email: string;
@@ -58,7 +59,9 @@ export function InvitePage() {
     return (
       <div className="auth-page">
         <div className="auth-card">
-          <div className="brand">✓ Task Tracker</div>
+          <div className="auth-logo-wrap">
+            <Logo variant="dark" />
+          </div>
           <ErrorText error={info.error} />
           <p className="small muted">
             <Link to="/login">Back to sign in</Link>
@@ -72,7 +75,10 @@ export function InvitePage() {
   return (
     <div className="auth-page">
       <form className="auth-card" onSubmit={onSubmit}>
-        <div className="brand">✓ Task Tracker</div>
+        <div className="auth-logo-wrap">
+          <Logo variant="dark" />
+        </div>
+        <p className="auth-tagline">Accept your invitation</p>
         <p>
           You've been invited to join <strong>{data.organizationName}</strong>
           {data.roleName ? ` as ${data.roleName}` : ""} ({data.email}).

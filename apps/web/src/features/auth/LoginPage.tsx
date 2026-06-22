@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "./session";
 import { ErrorText } from "../../components/ui";
+import { Logo } from "../../components/Logo";
 
 export function LoginPage() {
   const session = useSession();
@@ -31,7 +32,10 @@ export function LoginPage() {
   return (
     <div className="auth-page">
       <form className="auth-card" onSubmit={onSubmit}>
-        <div className="brand">✓ Task Tracker</div>
+        <div className="auth-logo-wrap">
+          <Logo variant="dark" />
+        </div>
+        <p className="auth-tagline">Sign in to your workspace</p>
         <div className="field">
           <label htmlFor="email">Email</label>
           <input

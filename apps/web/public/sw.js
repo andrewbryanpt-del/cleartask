@@ -10,7 +10,7 @@ self.addEventListener("push", (event) => {
     // Non-JSON payload — show what we can.
   }
   event.waitUntil(
-    self.registration.showNotification(data.title || "Task Tracker", {
+    self.registration.showNotification(data.title || "ClearTask", {
       body: data.body || "",
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",

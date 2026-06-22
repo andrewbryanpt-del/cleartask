@@ -15,11 +15,8 @@ const envSchema = z.object({
   STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),
   UPLOADS_DIR: z.string().default("uploads"),
 
-  SMTP_HOST: z.string().optional(),
-  SMTP_PORT: z.coerce.number().default(587),
-  SMTP_USER: z.string().optional(),
-  SMTP_PASS: z.string().optional(),
-  EMAIL_FROM: z.string().default("Task Tracker <no-reply@localhost>"),
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().default("ClearTask <noreply@cleartask.com.au>"),
 
   // Web Push (browser). Generate once with: npx web-push generate-vapid-keys
   VAPID_PUBLIC_KEY: z.string().optional(),

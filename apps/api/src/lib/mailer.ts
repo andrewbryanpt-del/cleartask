@@ -1,16 +1,7 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { env } from "../config/env";
 
-const transport = env.SMTP_HOST
-  ? nodemailer.createTransport({
-      host: env.SMTP_HOST,
-      port: env.SMTP_PORT,
-      auth:
-        env.SMTP_USER && env.SMTP_PASS
-          ? { user: env.SMTP_USER, pass: env.SMTP_PASS }
-          : undefined,
-    })
-  : null;
+const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null;
 
 export async function sendMail(opts: {
   to: string;
@@ -18,11 +9,22 @@ export async function sendMail(opts: {
   text: string;
   html?: string;
 }): Promise<void> {
-  if (!transport) {
+  if (!resend) {
     console.log(
-      `[mailer] SMTP not configured — would send to ${opts.to}: "${opts.subject}"\n${opts.text}`,
+      `[mailer] Resend not configured — would send to ${opts.to}: "${opts.subject}"\n${opts.text}`,
     );
     return;
   }
-  await transport.sendMail({ from: env.EMAIL_FROM, ...opts });
+
+  const { error } = await resend.emails.send({
+    from: env.EMAIL_FROM,
+    to: opts.to,
+    subject: opts.subject,
+    text: opts.text,
+    ...(opts.html ? { html: opts.html } : {}),
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
 }

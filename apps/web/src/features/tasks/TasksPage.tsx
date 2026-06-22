@@ -4,14 +4,14 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import { fmtDateTime } from "../../lib/format";
 import { useSession } from "../auth/session";
-import { EmptyState, ErrorText, Spinner, StatusBadge } from "../../components/ui";
+import { EmptyState, ErrorText, PriorityBadge, Spinner, StatusBadge } from "../../components/ui";
 import { TaskFormDialog } from "./TaskFormDialog";
 import type { TaskListResponse } from "./types";
 
 export function TasksPage() {
   const session = useSession();
   const navigate = useNavigate();
-  const [filters, setFilters] = useState({ status: "", assignedToMe: false, search: "" });
+  const [filters, setFilters] = useState({ status: "", priority: "", assignedToMe: false, search: "" });
   const [showCreate, setShowCreate] = useState(false);
 
   const tasks = useInfiniteQuery({
@@ -20,6 +20,7 @@ export function TasksPage() {
       api<TaskListResponse>("/tasks", {
         query: {
           status: filters.status || undefined,
+          priority: filters.priority || undefined,
           assignedToMe: filters.assignedToMe || undefined,
           search: filters.search || undefined,
           cursor: pageParam || undefined,
@@ -62,6 +63,18 @@ export function TasksPage() {
           <option value="IN_PROGRESS">In progress</option>
           <option value="COMPLETED">Completed</option>
         </select>
+        <select
+          className="input"
+          style={{ width: "auto" }}
+          value={filters.priority}
+          onChange={(e) => setFilters((f) => ({ ...f, priority: e.target.value }))}
+        >
+          <option value="">Any priority</option>
+          <option value="URGENT">Urgent</option>
+          <option value="HIGH">High</option>
+          <option value="NORMAL">Normal</option>
+          <option value="LOW">Low</option>
+        </select>
         {!session.isRestricted && (
           <label className="row small" style={{ gap: "0.35rem" }}>
             <input
@@ -84,6 +97,7 @@ export function TasksPage() {
             <thead>
               <tr>
                 <th>Task</th>
+                <th>Priority</th>
                 <th>Due</th>
                 <th>Department</th>
                 <th>Progress</th>
@@ -103,6 +117,7 @@ export function TasksPage() {
                         {t.attachmentCount > 0 && `📎 ${t.attachmentCount}`}
                       </div>
                     </td>
+                    <td><PriorityBadge priority={t.priority} /></td>
                     <td className={overdue ? "error-text" : undefined}>{fmtDateTime(t.dueAt)}</td>
                     <td>{t.department?.name ?? "—"}</td>
                     <td>

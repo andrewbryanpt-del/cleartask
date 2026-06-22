@@ -3,6 +3,7 @@
 export interface TaskListItem {
   id: string;
   title: string;
+  priority: "URGENT" | "HIGH" | "NORMAL" | "LOW";
   dueAt: string | null;
   location: { id: string; name: string } | null;
   department: { id: string; name: string } | null;
@@ -52,14 +53,26 @@ export interface TaskAttachmentDetail {
   sizeBytes: number;
   downloadUrl: string;
   viewedByMe: boolean;
+  acknowledgedByMe: boolean;
   viewCount: number;
-  views?: { membershipId: string; viewedAt: string }[];
+  acknowledgeCount: number;
+  views?: {
+    membershipId: string;
+    viewedAt: string;
+    acknowledgedAt: string | null;
+  }[];
+  acknowledgementStatus?: {
+    membershipId: string;
+    name: string;
+    acknowledgedAt: string | null;
+  }[];
 }
 
 export interface TaskDetail {
   id: string;
   title: string;
   description: string | null;
+  priority: "URGENT" | "HIGH" | "NORMAL" | "LOW";
   dueAt: string | null;
   reminderOffsetsMinutes: number[];
   location: { id: string; name: string } | null;

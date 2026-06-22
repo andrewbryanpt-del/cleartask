@@ -4,6 +4,7 @@ import { api } from "../../lib/api";
 import { useSession } from "../auth/session";
 import { ErrorText } from "../../components/ui";
 import { AuthImage } from "../../components/AuthImage";
+import { Logo } from "../../components/Logo";
 
 const STEPS = ["Business details", "Company logo", "First department"];
 
@@ -96,7 +97,9 @@ export function OnboardingPage() {
   return (
     <div className="auth-page">
       <div className="auth-card wizard">
-        <div className="brand">✓ Task Tracker</div>
+        <div className="auth-logo-wrap">
+          <Logo variant="dark" />
+        </div>
         <h1 style={{ textAlign: "center", fontSize: "1.2rem" }}>
           Welcome, {session.user?.name?.split(" ")[0]}! Let's set up{" "}
           {details.name || "your business"}.

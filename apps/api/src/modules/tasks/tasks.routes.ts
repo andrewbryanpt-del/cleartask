@@ -35,6 +35,7 @@ function serializeTaskDetail(task: TaskDetail, auth: AuthContext) {
     id: task.id,
     title: task.title,
     description: task.description,
+    priority: task.priority,
     dueAt: task.dueAt,
     reminderOffsetsMinutes: task.reminderOffsetsMinutes,
     location: task.location,
@@ -75,17 +76,39 @@ function serializeTaskDetail(task: TaskDetail, auth: AuthContext) {
         avatarUrl: fileUrl(c.membership.user.avatarKey),
       },
     })),
-    attachments: task.attachments.map((att) => ({
-      id: att.id,
-      fileName: att.fileName,
-      mimeType: att.mimeType,
-      sizeBytes: att.sizeBytes,
-      downloadUrl: `/api/v1/attachments/${att.id}/download`,
-      viewedByMe: att.views.some((v) => v.membershipId === auth.membershipId),
-      viewCount: att.views.length,
-      // Who-has-viewed detail is for managers (the training-material check).
-      views: manager ? att.views : undefined,
-    })),
+    attachments: task.attachments.map((att) => {
+      const myView = att.views.find((v) => v.membershipId === auth.membershipId);
+      const acknowledgedViews = att.views.filter((v) => v.acknowledgedAt);
+      const assigneeAcknowledgements = task.assignments.map((a) => {
+        const view = att.views.find(
+          (v) => v.membershipId === a.membershipId && v.acknowledgedAt,
+        );
+        return {
+          membershipId: a.membershipId,
+          name: a.membership.user.name,
+          acknowledgedAt: view?.acknowledgedAt ?? null,
+        };
+      });
+      return {
+        id: att.id,
+        fileName: att.fileName,
+        mimeType: att.mimeType,
+        sizeBytes: att.sizeBytes,
+        downloadUrl: `/api/v1/attachments/${att.id}/download`,
+        viewedByMe: !!myView,
+        acknowledgedByMe: !!myView?.acknowledgedAt,
+        viewCount: att.views.length,
+        acknowledgeCount: acknowledgedViews.length,
+        views: manager
+          ? att.views.map((v) => ({
+              membershipId: v.membershipId,
+              viewedAt: v.viewedAt,
+              acknowledgedAt: v.acknowledgedAt,
+            }))
+          : undefined,
+        acknowledgementStatus: manager ? assigneeAcknowledgements : undefined,
+      };
+    }),
   };
 }
 
@@ -156,6 +179,7 @@ export default async function tasksRoutes(app: FastifyInstance) {
             locationId,
             departmentId: input.departmentId,
             templateId: template?.id,
+            priority: input.priority ?? "NORMAL",
             reminderOffsetsMinutes:
               input.reminderOffsetsMinutes ??
               template?.reminderOffsetsMinutes ??
@@ -220,6 +244,7 @@ export default async function tasksRoutes(app: FastifyInstance) {
 
     const where: Prisma.TaskWhereInput = {
       organizationId: req.auth.organizationId,
+      ...(query.priority ? { priority: query.priority } : {}),
       ...(query.locationId ? { locationId: query.locationId } : {}),
       ...(query.departmentId ? { departmentId: query.departmentId } : {}),
       ...(query.search
@@ -249,7 +274,12 @@ export default async function tasksRoutes(app: FastifyInstance) {
       where,
       take: query.limit + 1,
       ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      orderBy: [
+        { priority: "asc" },
+        { dueAt: "asc" },
+        { createdAt: "desc" },
+        { id: "desc" },
+      ],
       include: {
         location: { select: { id: true, name: true } },
         department: { select: { id: true, name: true } },
@@ -264,6 +294,7 @@ export default async function tasksRoutes(app: FastifyInstance) {
     const items = rows.slice(0, query.limit).map((task) => ({
       id: task.id,
       title: task.title,
+      priority: task.priority,
       dueAt: task.dueAt,
       location: task.location,
       department: task.department,
@@ -331,6 +362,7 @@ export default async function tasksRoutes(app: FastifyInstance) {
           ...(input.departmentId !== undefined
             ? { departmentId: input.departmentId }
             : {}),
+          ...(input.priority !== undefined ? { priority: input.priority } : {}),
           ...(locationId !== undefined ? { locationId } : {}),
           ...(input.reminderOffsetsMinutes !== undefined
             ? { reminderOffsetsMinutes: input.reminderOffsetsMinutes }

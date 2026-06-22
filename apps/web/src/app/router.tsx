@@ -18,6 +18,7 @@ import { TemplatesPage } from "../features/tasks/TemplatesPage";
 import { NotificationsPage } from "../features/notifications/NotificationsPage";
 import { ReportsPage } from "../features/reports/ReportsPage";
 import { AdminPage } from "../features/admin/AdminPage";
+import { AnnouncementsPage } from "../features/announcements/AnnouncementsPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 
 export const router = createBrowserRouter([
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
       { path: "dashboard", element: <DashboardPage /> },
       { path: "tasks", element: <TasksPage /> },
       { path: "tasks/:taskId", element: <TaskDetailPage /> },
+      { path: "announcements", element: <AnnouncementsPage /> },
       {
         path: "templates",
         element: (

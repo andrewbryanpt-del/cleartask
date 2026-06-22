@@ -5,7 +5,7 @@ import { api, fetchBlobUrl } from "../../lib/api";
 import { fmtBytes, fmtDateTime } from "../../lib/format";
 import { captureProofPhoto, isNative } from "../../lib/native";
 import { useSession } from "../auth/session";
-import { ConfirmButton, EmptyState, ErrorText, Spinner, StatusBadge } from "../../components/ui";
+import { ConfirmButton, EmptyState, ErrorText, PriorityBadge, Spinner, StatusBadge } from "../../components/ui";
 import type { TaskDetail } from "./types";
 
 export function TaskDetailPage() {
@@ -70,6 +70,18 @@ export function TaskDetailPage() {
     onSuccess: invalidate,
   });
 
+  const acknowledgeAttachment = useMutation({
+    mutationFn: (attachmentId: string) =>
+      api(`/attachments/${attachmentId}/acknowledge`, { method: "POST" }),
+    onSuccess: invalidate,
+  });
+
+  const updateTask = useMutation({
+    mutationFn: (body: { priority?: string }) =>
+      api(`/tasks/${taskId}`, { method: "PATCH", body }),
+    onSuccess: invalidate,
+  });
+
   const uploadProof = useMutation({
     mutationFn: ({ assignmentId, blob, name }: { assignmentId: string; blob: Blob; name: string }) => {
       const formData = new FormData();
@@ -119,6 +131,7 @@ export function TaskDetailPage() {
         <div>
           <h1>{t.title}</h1>
           <div className="row small muted">
+            <PriorityBadge priority={t.priority} />
             {t.dueAt && <span>Due {fmtDateTime(t.dueAt)}</span>}
             {t.department && <span className="badge">{t.department.name}</span>}
             {t.location && <span className="badge">{t.location.name}</span>}
@@ -136,6 +149,27 @@ export function TaskDetailPage() {
       </div>
 
       {t.description && <div className="card">{t.description}</div>}
+
+      {canManage && (
+        <div className="card">
+          <h2>Edit task</h2>
+          <div className="field" style={{ maxWidth: "240px" }}>
+            <label>Priority</label>
+            <select
+              className="input"
+              value={t.priority}
+              disabled={updateTask.isPending}
+              onChange={(e) => updateTask.mutate({ priority: e.target.value })}
+            >
+              <option value="URGENT">Urgent</option>
+              <option value="HIGH">High</option>
+              <option value="NORMAL">Normal</option>
+              <option value="LOW">Low</option>
+            </select>
+          </div>
+          <ErrorText error={updateTask.error} />
+        </div>
+      )}
 
       {myAssignment && (
         <div className="card">
@@ -233,33 +267,70 @@ export function TaskDetailPage() {
         </div>
         {t.attachments.length === 0 && <p className="muted small">No attachments.</p>}
         {t.attachments.map((att) => (
-          <div key={att.id} className="row" style={{ padding: "0.3rem 0" }}>
-            <a
-              href="#open"
-              onClick={(e) => {
-                e.preventDefault();
-                void openAttachment(att.id);
-              }}
-            >
-              {att.fileName}
-            </a>
-            <span className="small muted">{fmtBytes(att.sizeBytes)}</span>
-            {att.viewedByMe ? (
-              <span className="badge badge-success">viewed</span>
-            ) : (
-              <span className="badge badge-warning">not viewed</span>
+          <div key={att.id} style={{ padding: "0.5rem 0", borderBottom: "1px solid var(--border)" }}>
+            <div className="row" style={{ padding: "0.3rem 0" }}>
+              <a
+                href="#open"
+                onClick={(e) => {
+                  e.preventDefault();
+                  void openAttachment(att.id);
+                }}
+              >
+                {att.fileName}
+              </a>
+              <span className="small muted">{fmtBytes(att.sizeBytes)}</span>
+              {att.viewedByMe ? (
+                <span className="badge badge-success">viewed</span>
+              ) : (
+                <span className="badge badge-warning">not viewed</span>
+              )}
+              {att.acknowledgedByMe ? (
+                <span className="badge badge-success">acknowledged</span>
+              ) : (
+                <span className="badge badge-warning">not acknowledged</span>
+              )}
+              {canManage && (
+                <span className="badge">
+                  {att.acknowledgeCount}/{t.assignments.length} ack.
+                </span>
+              )}
+              <span className="spacer" />
+              {canManage && (
+                <ConfirmButton
+                  label="Remove"
+                  confirmLabel="Remove this attachment?"
+                  onConfirm={() => deleteAttachment.mutate(att.id)}
+                />
+              )}
+            </div>
+            {!att.acknowledgedByMe && myAssignment && (
+              <button
+                className="btn btn-sm btn-primary"
+                style={{ marginTop: "0.35rem" }}
+                disabled={acknowledgeAttachment.isPending}
+                onClick={() => acknowledgeAttachment.mutate(att.id)}
+              >
+                I have read and understood this
+              </button>
             )}
-            {canManage && <span className="badge">{att.viewCount} view(s)</span>}
-            <span className="spacer" />
-            {canManage && (
-              <ConfirmButton
-                label="Remove"
-                confirmLabel="Remove this attachment?"
-                onConfirm={() => deleteAttachment.mutate(att.id)}
-              />
+            {canManage && att.acknowledgementStatus && att.acknowledgementStatus.length > 0 && (
+              <div className="small" style={{ marginTop: "0.5rem" }}>
+                <strong>Acknowledgements</strong>
+                {att.acknowledgementStatus.map((s) => (
+                  <div key={s.membershipId} className="row" style={{ padding: "0.15rem 0" }}>
+                    <span>{s.name}</span>
+                    {s.acknowledgedAt ? (
+                      <span className="badge badge-success">{fmtDateTime(s.acknowledgedAt)}</span>
+                    ) : (
+                      <span className="badge badge-warning">Pending</span>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         ))}
+        <ErrorText error={acknowledgeAttachment.error} />
       </div>
 
       <div className="card">

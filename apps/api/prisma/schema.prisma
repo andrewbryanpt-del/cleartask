@@ -19,6 +19,13 @@ enum TaskStatus {
   COMPLETED
 }
 
+enum TaskPriority {
+  URGENT
+  HIGH
+  NORMAL
+  LOW
+}
+
 enum ProofType {
   PHOTO
   DOCUMENT
@@ -73,6 +80,7 @@ model Organization {
   attachments     Attachment[]
   notifications   Notification[]
   auditLogs       AuditLog[]
+  announcements   Announcement[]
 }
 
 model Location {
@@ -144,8 +152,10 @@ model Membership {
   assignments     TaskAssignment[]
   comments        TaskComment[]
   notifications   Notification[]
-  attachmentViews AttachmentView[]
-  pushDevices     PushDevice[]
+  attachmentViews     AttachmentView[]
+  pushDevices         PushDevice[]
+  announcementReads   AnnouncementRead[]
+  announcementsPosted Announcement[]     @relation("AnnouncementAuthor")
 
   @@unique([userId, organizationId])
   @@index([organizationId])
@@ -244,6 +254,7 @@ model Task {
   recurrenceRuleId       String?
   title                  String
   description            String?
+  priority               TaskPriority @default(NORMAL)
   dueAt                  DateTime?
   // Minutes before dueAt to send escalating reminders, e.g. 7/3/1 days
   // before = [10080, 4320, 1440, 0]
@@ -263,6 +274,7 @@ model Task {
   attachments Attachment[]
 
   @@index([organizationId, dueAt])
+  @@index([organizationId, priority])
 }
 
 // One row per assigned person — assigning to a department fans out to one
@@ -358,16 +370,48 @@ model Attachment {
 }
 
 // First-view tracking: "has this staff member opened the SOP/training doc?"
+// acknowledgedAt is set when they tap "I have read and understood this".
 model AttachmentView {
-  id           String   @id @default(uuid())
-  attachmentId String
-  membershipId String
-  viewedAt     DateTime @default(now())
+  id             String    @id @default(uuid())
+  attachmentId   String
+  membershipId   String
+  viewedAt       DateTime  @default(now())
+  acknowledgedAt DateTime?
 
   attachment Attachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
   membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
 
   @@unique([attachmentId, membershipId])
+}
+
+// ---------- Announcements ----------
+
+model Announcement {
+  id                    String   @id @default(uuid())
+  organizationId        String
+  title                 String
+  body                  String
+  createdByMembershipId String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  author       Membership?        @relation("AnnouncementAuthor", fields: [createdByMembershipId], references: [id], onDelete: SetNull)
+  reads        AnnouncementRead[]
+
+  @@index([organizationId, createdAt])
+}
+
+model AnnouncementRead {
+  id             String   @id @default(uuid())
+  announcementId String
+  membershipId   String
+  readAt         DateTime @default(now())
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  membership   Membership   @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, membershipId])
 }
 
 model TaskComment {

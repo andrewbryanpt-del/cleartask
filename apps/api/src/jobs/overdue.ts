@@ -77,6 +77,7 @@ export async function sweepOverdue(now: Date = new Date()): Promise<void> {
         title: `Overdue in your team: ${task.title}`,
         body: `${assignment.membership.user.name} has not completed "${task.title}" (due ${task.dueAt!.toUTCString()}).`,
         taskId: task.id,
+        assigneeName: assignment.membership.user.name,
       });
     }
   }

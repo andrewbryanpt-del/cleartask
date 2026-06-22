@@ -9,6 +9,7 @@ import { badRequest, conflict, notFound, unauthorized } from "../../lib/errors";
 import { hashPassword, verifyPassword } from "../../lib/password";
 import { generateToken, hashToken } from "../../lib/tokens";
 import { sendMail } from "../../lib/mailer";
+import { invitationEmail } from "../../lib/email-templates";
 import { recordAudit } from "../audit/audit.service";
 
 const INVITE_TTL_DAYS = 7;
@@ -69,11 +70,13 @@ export default async function invitationsRoutes(app: FastifyInstance) {
       });
 
       const inviteUrl = `${env.WEB_ORIGIN}/invite/${token}`;
-      await sendMail({
-        to: input.email,
-        subject: `You've been invited to join ${invitation.organization.name}`,
-        text: `You've been invited to join ${invitation.organization.name} on Task Tracker as ${role.name}.\n\nAccept the invitation here (link expires in ${INVITE_TTL_DAYS} days):\n${inviteUrl}`,
+      const email = invitationEmail({
+        organizationName: invitation.organization.name,
+        roleName: role.name,
+        inviteUrl,
+        expiresDays: INVITE_TTL_DAYS,
       });
+      await sendMail({ to: input.email, ...email });
 
       await recordAudit({
         organizationId: req.auth.organizationId,

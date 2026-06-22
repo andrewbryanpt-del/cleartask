@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useSession } from "./session";
 import { ErrorText } from "../../components/ui";
+import { Logo } from "../../components/Logo";
 
 export function RegisterPage() {
   const session = useSession();
@@ -44,7 +45,10 @@ export function RegisterPage() {
   return (
     <div className="auth-page">
       <form className="auth-card" onSubmit={onSubmit}>
-        <div className="brand">✓ Task Tracker</div>
+        <div className="auth-logo-wrap">
+          <Logo variant="dark" />
+        </div>
+        <p className="auth-tagline">Create your ClearTask workspace</p>
         <div className="field">
           <label htmlFor="businessName">Business name</label>
           <input id="businessName" className="input" value={form.businessName} onChange={set("businessName")} required />
