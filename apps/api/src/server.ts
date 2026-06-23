@@ -1,6 +1,10 @@
 import { buildApp } from "./app";
 import { env } from "./config/env";
+import { ensureUploadsDir, getUploadsDir } from "./lib/storage";
 import { startJobs, stopJobs } from "./jobs";
+
+await ensureUploadsDir();
+console.info(`[storage] uploads directory: ${getUploadsDir()}`);
 
 const app = await buildApp();
 

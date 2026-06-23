@@ -6,11 +6,18 @@ import { randomUUID } from "node:crypto";
 import { env } from "../config/env";
 import { notFound } from "./errors";
 
-// Local-disk driver for development. The S3 driver (any S3-compatible
-// provider) replaces these two functions behind the same interface when
-// STORAGE_DRIVER=s3 — to be added before production deployment.
+// Local-disk driver for development and Railway volumes. The S3 driver replaces
+// these functions behind the same interface when STORAGE_DRIVER=s3.
 
 const uploadsDir = path.resolve(env.UPLOADS_DIR);
+
+export function getUploadsDir(): string {
+  return uploadsDir;
+}
+
+export async function ensureUploadsDir(): Promise<void> {
+  await mkdir(uploadsDir, { recursive: true });
+}
 
 export async function saveFile(
   buffer: Buffer,
@@ -18,7 +25,7 @@ export async function saveFile(
 ): Promise<string> {
   const ext = path.extname(originalName).slice(0, 10).replace(/[^.\w]/g, "");
   const key = `${randomUUID()}${ext}`;
-  await mkdir(uploadsDir, { recursive: true });
+  await ensureUploadsDir();
   await writeFile(path.join(uploadsDir, key), buffer);
   return key;
 }
