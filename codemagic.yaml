@@ -46,7 +46,7 @@ workflows:
     instance_type: mac_mini_m2
     integrations:
       # Replace with your App Store Connect API key integration name in Codemagic UI.
-      app_store_connect: cleartask_app_store_connect
+      app_store_connect: ClearTask
     environment:
       <<: *shared_env
       groups:
@@ -111,7 +111,7 @@ workflows:
       <<: *shared_env
       android_signing:
         # Replace with your keystore reference name from Codemagic Code signing identities.
-        - cleartask_keystore
+        - cleartask_release
       groups:
         - cleartask_mobile
       vars:
