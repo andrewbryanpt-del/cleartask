@@ -69,7 +69,7 @@ via `public/sw.js` and registers the subscription at `POST /push-devices`.
 ### Android (FCM)
 
 1. Create a Firebase project; add an Android app with package id
-   `com.tasktracker.app`.
+   `au.com.cleartask.app`.
 2. Download `google-services.json` into `apps/web/android/app/`.
 3. In Firebase console → Project settings → Service accounts, generate a
    service account key JSON. Put it somewhere private on the API host and
@@ -78,7 +78,7 @@ via `public/sw.js` and registers the subscription at `POST /push-devices`.
 ### iOS (APNs via FCM)
 
 1. Add an iOS app to the same Firebase project (bundle id
-   `com.tasktracker.app`); download `GoogleService-Info.plist` into the
+   `au.com.cleartask.app`); download `GoogleService-Info.plist` into the
    Xcode project.
 2. Upload your APNs auth key (.p8) in Firebase → Cloud Messaging settings.
 3. Enable the Push Notifications capability + Background Modes → Remote

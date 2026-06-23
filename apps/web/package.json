@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "cap:sync": "npm run build && cap sync",
+    "cap:icons": "capacitor-assets generate --iconBackgroundColor \"#1E3A5F\"",
     "cap:ios": "cap open ios",
     "cap:android": "cap open android"
   },
@@ -29,6 +30,7 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^6.2.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

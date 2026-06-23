@@ -1,0 +1,150 @@
+# ClearTask — Capacitor mobile CI/CD (apps/web)
+#
+# Setup in Codemagic UI (Team settings):
+#
+# 1. App Store Connect integration
+#    Team integrations → Developer Portal → Add key (.p8, Issuer ID, Key ID)
+#    Update `integrations.app_store_connect` below with your integration name.
+#
+# 2. iOS code signing (Code signing identities)
+#    - Upload or generate an Apple Distribution certificate
+#    - Fetch/upload an App Store provisioning profile for au.com.cleartask.app
+#    Codemagic resolves these automatically via ios_signing below.
+#
+# 3. Android keystore (Code signing identities → Android keystores)
+#    Upload your release keystore; set reference name in android_signing below.
+#
+# 4. Environment variable group `cleartask_mobile` (Application → Environment variables):
+#    - APP_STORE_APPLE_ID          Numeric Apple ID (App Store Connect → App → General)
+#    - GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS  Full JSON from Google Play service account
+#
+# 5. Create the app records in App Store Connect and Google Play Console
+#    with bundle/package id au.com.cleartask.app before first publish.
+#
+# Native android/ and ios/ folders are gitignored; CI regenerates them each build.
+
+definitions:
+  environment:
+    shared: &shared_env
+      node: 20
+      vars:
+        APP_ID: au.com.cleartask.app
+        PACKAGE_NAME: au.com.cleartask.app
+        WEB_DIR: apps/web
+  scripts:
+    - &install_monorepo
+      name: Install monorepo dependencies
+      script: npm ci
+    - &prepare_capacitor
+      name: Prepare Capacitor native projects
+      script: bash apps/web/scripts/ci/prepare-capacitor.sh
+
+workflows:
+  cleartask-ios:
+    name: ClearTask iOS (App Store)
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    integrations:
+      # Replace with your App Store Connect API key integration name in Codemagic UI.
+      app_store_connect: cleartask_app_store_connect
+    environment:
+      <<: *shared_env
+      groups:
+        - cleartask_mobile
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: au.com.cleartask.app
+      vars:
+        XCODE_WORKSPACE: App.xcworkspace
+        XCODE_SCHEME: App
+        # Set APP_STORE_APPLE_ID in the cleartask_mobile variable group.
+      xcode: latest
+      cocoapods: default
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+    scripts:
+      - *install_monorepo
+      - *prepare_capacitor
+      - name: Install CocoaPods dependencies
+        script: |
+          cd "$CM_BUILD_DIR/$WEB_DIR/ios/App"
+          pod install
+      - name: Set up code signing settings on Xcode project
+        script: |
+          cd "$CM_BUILD_DIR/$WEB_DIR/ios/App"
+          xcode-project use-profiles
+      - name: Increment build number
+        script: |
+          cd "$CM_BUILD_DIR/$WEB_DIR/ios/App"
+          LATEST=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" || true)
+          if [ -z "$LATEST" ]; then
+            NEXT=$BUILD_NUMBER
+          else
+            NEXT=$(($LATEST + 1))
+          fi
+          agvtool new-version -all "$NEXT"
+          agvtool new-marketing-version "1.0.$NEXT"
+      - name: Build signed IPA for App Store
+        script: |
+          cd "$CM_BUILD_DIR/$WEB_DIR/ios/App"
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - apps/web/ios/App/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        # submit_to_app_store: false  # enable when ready for App Store review
+
+  cleartask-android:
+    name: ClearTask Android (Google Play AAB)
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    environment:
+      <<: *shared_env
+      android_signing:
+        # Replace with your keystore reference name from Codemagic Code signing identities.
+        - cleartask_keystore
+      groups:
+        - cleartask_mobile
+      vars:
+        # GOOGLE_PLAY_TRACK: internal | alpha | beta | production
+        GOOGLE_PLAY_TRACK: internal
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+    scripts:
+      - *install_monorepo
+      - *prepare_capacitor
+      - name: Set Android SDK location
+        script: echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/$WEB_DIR/android/local.properties"
+      - name: Build signed Android App Bundle
+        script: |
+          cd "$CM_BUILD_DIR/$WEB_DIR"
+          LATEST=$(google-play get-latest-build-number --package-name "$PACKAGE_NAME" || true)
+          if [ -z "$LATEST" ]; then
+            VERSION_CODE=$BUILD_NUMBER
+          else
+            VERSION_CODE=$(($LATEST + 1))
+          fi
+          cd android
+          ./gradlew bundleRelease \
+            -PversionCode="$VERSION_CODE" \
+            -PversionName="1.0.$VERSION_CODE"
+    artifacts:
+      - apps/web/android/app/build/outputs/**/*.aab
+    publishing:
+      google_play:
+        credentials: $GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS
+        track: $GOOGLE_PLAY_TRACK
+        submit_as_draft: true
