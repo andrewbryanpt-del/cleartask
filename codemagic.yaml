@@ -71,15 +71,15 @@ workflows:
       - *prepare_capacitor
       - name: Install CocoaPods dependencies
         script: |
-          cd "$CM_BUILD_DIR/$WEB_DIR/ios/App"
+          cd "$CM_BUILD_DIR/apps/web/ios/App"
           pod install
       - name: Set up code signing settings on Xcode project
         script: |
-          cd "$CM_BUILD_DIR/$WEB_DIR/ios/App"
+          cd "$CM_BUILD_DIR/apps/web/ios/App"
           xcode-project use-profiles
       - name: Increment build number
         script: |
-          cd "$CM_BUILD_DIR/$WEB_DIR/ios/App"
+          cd "$CM_BUILD_DIR/apps/web/ios/App"
           LATEST=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" || true)
           if [ -z "$LATEST" ]; then
             NEXT=$BUILD_NUMBER
@@ -90,7 +90,7 @@ workflows:
           agvtool new-marketing-version "1.0.$NEXT"
       - name: Build signed IPA for App Store
         script: |
-          cd "$CM_BUILD_DIR/$WEB_DIR/ios/App"
+          cd "$CM_BUILD_DIR/apps/web/ios/App"
           xcode-project build-ipa \
             --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
