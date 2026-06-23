@@ -69,7 +69,7 @@ workflows:
     scripts:
       - *install_monorepo
       - *prepare_capacitor
-     - name: Add iOS privacy descriptions
+      - name: Add iOS privacy descriptions
         script: |
           PLIST="$CM_BUILD_DIR/apps/web/ios/App/App/Info.plist"
           plutil -insert NSPhotoLibraryUsageDescription -string "ClearTask needs photo access to let you attach images to tasks." "$PLIST"
