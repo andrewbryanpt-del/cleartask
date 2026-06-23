@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
+import { registerSchema } from "@task-tracker/shared";
 import { useSession } from "./session";
 import { ErrorText } from "../../components/ui";
 import { Logo } from "../../components/Logo";
@@ -26,13 +27,19 @@ export function RegisterPage() {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    const parsed = registerSchema.safeParse(form);
+    if (!parsed.success) {
+      setError(new Error(parsed.error.issues.map((i) => i.message).join(" ")));
+      setBusy(false);
+      return;
+    }
     try {
       await session.register({
-        businessName: form.businessName,
-        industry: form.industry || undefined,
-        name: form.name,
-        email: form.email,
-        password: form.password,
+        businessName: parsed.data.businessName,
+        industry: parsed.data.industry,
+        name: parsed.data.name,
+        email: parsed.data.email,
+        password: parsed.data.password,
       });
       navigate("/dashboard");
     } catch (err) {
@@ -44,7 +51,7 @@ export function RegisterPage() {
 
   return (
     <div className="auth-page">
-      <form className="auth-card" onSubmit={onSubmit}>
+      <form className="auth-card" noValidate onSubmit={onSubmit}>
         <div className="auth-logo-wrap">
           <Logo variant="dark" />
         </div>
@@ -63,11 +70,11 @@ export function RegisterPage() {
         </div>
         <div className="field">
           <label htmlFor="email">Email</label>
-          <input id="email" className="input" type="email" autoComplete="email" value={form.email} onChange={set("email")} required />
+          <input id="email" className="input" type="text" inputMode="email" autoComplete="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={form.email} onChange={set("email")} required />
         </div>
         <div className="field">
-          <label htmlFor="password">Password (min 8 characters)</label>
-          <input id="password" className="input" type="password" autoComplete="new-password" minLength={8} value={form.password} onChange={set("password")} required />
+          <label htmlFor="password">Password (min 8 characters, symbols allowed)</label>
+          <input id="password" className="input" type="password" autoComplete="new-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={form.password} onChange={set("password")} required />
         </div>
         <ErrorText error={error} />
         <button className="btn btn-primary" style={{ width: "100%" }} disabled={busy}>

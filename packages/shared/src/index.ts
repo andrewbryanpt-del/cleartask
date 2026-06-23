@@ -1,4 +1,5 @@
 export * from "./permissions/index";
+export * from "./password";
 export * from "./schemas/auth";
 export * from "./schemas/organization";
 export * from "./schemas/roles";

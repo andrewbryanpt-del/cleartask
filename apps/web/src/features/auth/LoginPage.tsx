@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { loginSchema } from "@task-tracker/shared";
 import { useSession } from "./session";
 import { ErrorText } from "../../components/ui";
 import { Logo } from "../../components/Logo";
@@ -19,8 +20,14 @@ export function LoginPage() {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    const parsed = loginSchema.safeParse({ email, password });
+    if (!parsed.success) {
+      setError(new Error(parsed.error.issues.map((i) => i.message).join(" ")));
+      setBusy(false);
+      return;
+    }
     try {
-      await session.login(email, password);
+      await session.login(parsed.data.email, parsed.data.password);
       navigate((location.state as { from?: string } | null)?.from ?? "/dashboard");
     } catch (err) {
       setError(err);
@@ -31,7 +38,7 @@ export function LoginPage() {
 
   return (
     <div className="auth-page">
-      <form className="auth-card" onSubmit={onSubmit}>
+      <form className="auth-card" noValidate onSubmit={onSubmit}>
         <div className="auth-logo-wrap">
           <Logo variant="dark" />
         </div>
@@ -41,8 +48,12 @@ export function LoginPage() {
           <input
             id="email"
             className="input"
-            type="email"
+            type="text"
+            inputMode="email"
             autoComplete="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -55,6 +66,9 @@ export function LoginPage() {
             className="input"
             type="password"
             autoComplete="current-password"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required

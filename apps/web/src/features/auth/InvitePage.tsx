@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { loginPasswordSchema, newPasswordSchema } from "@task-tracker/shared";
 import { api } from "../../lib/api";
 import { useSession } from "./session";
 import { ErrorText, Spinner } from "../../components/ui";
@@ -32,6 +33,18 @@ export function InvitePage() {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    const accountExists = info.data?.accountExists ?? false;
+    const passwordCheck = (accountExists ? loginPasswordSchema : newPasswordSchema).safeParse(password);
+    if (!passwordCheck.success) {
+      setError(new Error(passwordCheck.error.issues.map((i) => i.message).join(" ")));
+      setBusy(false);
+      return;
+    }
+    if (!accountExists && !name.trim()) {
+      setError(new Error("Name is required"));
+      setBusy(false);
+      return;
+    }
     try {
       await api("/invitations/accept", {
         method: "POST",
@@ -74,7 +87,7 @@ export function InvitePage() {
   const data = info.data!;
   return (
     <div className="auth-page">
-      <form className="auth-card" onSubmit={onSubmit}>
+      <form className="auth-card" noValidate onSubmit={onSubmit}>
         <div className="auth-logo-wrap">
           <Logo variant="dark" />
         </div>
@@ -97,7 +110,10 @@ export function InvitePage() {
             id="password"
             className="input"
             type="password"
-            minLength={data.accountExists ? 1 : 8}
+            autoComplete={data.accountExists ? "current-password" : "new-password"}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { newPasswordSchema } from "../password";
 
 export const createInvitationSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
@@ -16,6 +17,6 @@ export type CreateInvitationInput = z.infer<typeof createInvitationSchema>;
 export const acceptInvitationSchema = z.object({
   token: z.string().min(1),
   name: z.string().trim().min(1).max(200).optional(),
-  password: z.string().min(8).max(200).optional(),
+  password: newPasswordSchema.optional(),
 });
 export type AcceptInvitationInput = z.infer<typeof acceptInvitationSchema>;
