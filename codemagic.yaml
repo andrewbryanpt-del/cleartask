@@ -69,6 +69,12 @@ workflows:
     scripts:
       - *install_monorepo
       - *prepare_capacitor
+     - name: Add iOS privacy descriptions
+        script: |
+          PLIST="$CM_BUILD_DIR/apps/web/ios/App/App/Info.plist"
+          plutil -insert NSPhotoLibraryUsageDescription -string "ClearTask needs photo access to let you attach images to tasks." "$PLIST"
+          plutil -insert NSCameraUsageDescription -string "ClearTask needs camera access to let you take photos for tasks." "$PLIST"
+          plutil -insert NSMicrophoneUsageDescription -string "ClearTask needs microphone access for audio messages." "$PLIST"
       - name: Install CocoaPods dependencies
         script: |
           cd "$CM_BUILD_DIR/apps/web/ios/App"
