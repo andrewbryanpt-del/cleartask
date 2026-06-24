@@ -19,7 +19,9 @@ if [ ! -d ios ]; then
 fi
 
 echo "[ci] building web app"
-npm run build
+export VITE_API_URL="${VITE_API_URL:-https://app.cleartask.com.au}"
+echo "[ci] VITE_API_URL=$VITE_API_URL"
+VITE_API_URL="$VITE_API_URL" npm run build
 
 echo "[ci] syncing Capacitor"
 npx cap sync
@@ -31,3 +33,7 @@ fi
 
 echo "[ci] patching Android release signing"
 node scripts/ci/patch-android-build.mjs
+
+if [ -f ios/App/App/Info.plist ]; then
+  bash scripts/ci/configure-ios-plist.sh ios/App/App/Info.plist
+fi
