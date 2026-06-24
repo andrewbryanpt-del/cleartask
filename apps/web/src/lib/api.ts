@@ -5,13 +5,16 @@
 
 import { Capacitor } from "@capacitor/core";
 
-/** Production web origin — /api is proxied to the API service. Used when the native shell has no VITE_API_URL. */
-const NATIVE_API_ORIGIN = "https://app.cleartask.com.au";
+/**
+ * Direct Railway API host. app.cleartask.com.au serves the SPA only (no /api proxy).
+ * Override at build time via VITE_API_URL (.env.production or CI env).
+ */
+const DEFAULT_NATIVE_API_ORIGIN = "https://api-production-332f.up.railway.app";
 
 function resolveApiBase(): string {
   const configured = import.meta.env.VITE_API_URL?.trim();
   if (configured) return configured.replace(/\/$/, "");
-  if (Capacitor.isNativePlatform()) return NATIVE_API_ORIGIN;
+  if (Capacitor.isNativePlatform()) return DEFAULT_NATIVE_API_ORIGIN;
   return "";
 }
 
@@ -132,11 +135,22 @@ async function rawRequest(
   if (orgId) headers["x-organization-id"] = orgId;
   if (opts.body !== undefined) headers["content-type"] = "application/json";
 
-  const res = await fetch(buildUrl(path, opts.query), {
-    method: opts.method ?? "GET",
-    headers,
-    body: opts.formData ?? (opts.body !== undefined ? JSON.stringify(opts.body) : undefined),
-  });
+  let res: Response;
+  try {
+    res = await fetch(buildUrl(path, opts.query), {
+      method: opts.method ?? "GET",
+      headers,
+      body: opts.formData ?? (opts.body !== undefined ? JSON.stringify(opts.body) : undefined),
+    });
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : "Network request failed";
+    throw new ApiError(
+      0,
+      detail === "Load failed" || detail === "Failed to fetch"
+        ? "Could not reach the server. Check your connection and try again."
+        : detail,
+    );
+  }
 
   if (res.status === 401 && !retried && !path.startsWith("/auth/")) {
     if (await refreshTokens()) return rawRequest(path, opts, true);

@@ -19,7 +19,7 @@ if [ ! -d ios ]; then
 fi
 
 echo "[ci] building web app"
-export VITE_API_URL="${VITE_API_URL:-https://app.cleartask.com.au}"
+export VITE_API_URL="${VITE_API_URL:-https://api-production-332f.up.railway.app}"
 echo "[ci] VITE_API_URL=$VITE_API_URL"
 VITE_API_URL="$VITE_API_URL" npm run build
 

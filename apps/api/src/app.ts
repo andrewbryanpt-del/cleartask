@@ -23,6 +23,21 @@ import reportsRoutes from "./modules/reports/reports.routes";
 import pushRoutes from "./modules/push/push.routes";
 import announcementsRoutes from "./modules/announcements/announcements.routes";
 
+/** Capacitor/Cordova WebView origins — not covered by WEB_ORIGIN alone. */
+const NATIVE_WEBVIEW_ORIGINS = new Set([
+  "capacitor://localhost",
+  "ionic://localhost",
+  "http://localhost",
+  "https://localhost",
+]);
+
+function isAllowedCorsOrigin(origin: string | undefined): boolean {
+  if (!origin) return true;
+  const webOrigin = env.WEB_ORIGIN.replace(/\/$/, "");
+  if (origin === webOrigin || origin === env.WEB_ORIGIN) return true;
+  return NATIVE_WEBVIEW_ORIGINS.has(origin);
+}
+
 export async function buildApp() {
   const app = Fastify({
     logger: {
@@ -30,7 +45,12 @@ export async function buildApp() {
     },
   });
 
-  await app.register(cors, { origin: env.WEB_ORIGIN, credentials: true });
+  await app.register(cors, {
+    origin(origin, cb) {
+      cb(null, isAllowedCorsOrigin(origin));
+    },
+    credentials: true,
+  });
   await app.register(multipart, {
     limits: { fileSize: 25 * 1024 * 1024, files: 1 },
   });
