@@ -441,6 +441,12 @@ textarea.input { resize: vertical; min-height: 4.5rem; }
   font-size: 0.85rem;
 }
 
+/* Mask text inputs used instead of type=password (avoids iOS WKWebView validation). */
+.input-masked {
+  -webkit-text-security: disc;
+  text-security: disc;
+}
+
 .field { margin-bottom: 1rem; }
 .field > label {
   display: block;

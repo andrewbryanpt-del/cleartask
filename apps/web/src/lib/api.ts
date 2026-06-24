@@ -3,7 +3,19 @@
 // In dev the Vite proxy forwards /api to the API server; in the Capacitor
 // shell set VITE_API_URL to the deployed API origin at build time.
 
-const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "";
+import { Capacitor } from "@capacitor/core";
+
+/** Production web origin — /api is proxied to the API service. Used when the native shell has no VITE_API_URL. */
+const NATIVE_API_ORIGIN = "https://app.cleartask.com.au";
+
+function resolveApiBase(): string {
+  const configured = import.meta.env.VITE_API_URL?.trim();
+  if (configured) return configured.replace(/\/$/, "");
+  if (Capacitor.isNativePlatform()) return NATIVE_API_ORIGIN;
+  return "";
+}
+
+const API_BASE = resolveApiBase();
 
 const ACCESS_KEY = "tt.access";
 const REFRESH_KEY = "tt.refresh";
@@ -65,7 +77,7 @@ async function refreshTokens(): Promise<boolean> {
         setTokens(null);
         return false;
       }
-      setTokens((await res.json()) as { accessToken: string; refreshToken: string });
+      setTokens((await readJsonBody(res)) as { accessToken: string; refreshToken: string });
       return true;
     } catch {
       return false;
@@ -85,11 +97,27 @@ interface RequestOptions {
 }
 
 function buildUrl(path: string, query?: RequestOptions["query"]): string {
-  const url = new URL(`${API_BASE}/api/v1${path}`, window.location.origin);
+  const apiPath = `/api/v1${path}`;
+  const url = API_BASE
+    ? new URL(`${API_BASE}${apiPath}`)
+    : new URL(apiPath, window.location.origin);
   for (const [key, value] of Object.entries(query ?? {})) {
     if (value !== undefined && value !== "") url.searchParams.set(key, String(value));
   }
   return url.toString();
+}
+
+async function readJsonBody(res: Response): Promise<unknown> {
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    throw new ApiError(
+      res.status,
+      "Could not reach the server. Check your connection and try again.",
+    );
+  }
 }
 
 async function rawRequest(
@@ -122,13 +150,13 @@ export async function api<T = unknown>(
 ): Promise<T> {
   const res = await rawRequest(path, opts);
   if (!res.ok) {
-    const data = (await res.json().catch(() => ({}))) as {
+    const data = (await readJsonBody(res).catch(() => ({}))) as {
       error?: string;
       issues?: { path: string; message: string }[];
     };
     throw new ApiError(res.status, data.error ?? `Request failed (${res.status})`, data.issues);
   }
-  return (await res.json()) as T;
+  return (await readJsonBody(res)) as T;
 }
 
 // Fetches a file with auth headers and triggers a browser download.
@@ -138,7 +166,7 @@ export async function downloadFile(
 ): Promise<void> {
   const res = await rawRequest(path, { query });
   if (!res.ok) {
-    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    const data = (await readJsonBody(res).catch(() => ({}))) as { error?: string };
     throw new ApiError(res.status, data.error ?? "Download failed");
   }
   const disposition = res.headers.get("content-disposition") ?? "";

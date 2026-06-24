@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { loginSchema } from "@task-tracker/shared";
 import { useSession } from "./session";
@@ -16,8 +16,7 @@ export function LoginPage() {
 
   if (session.status === "authenticated") return <Navigate to="/dashboard" replace />;
 
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function handleSignIn() {
     setBusy(true);
     setError(null);
     const parsed = loginSchema.safeParse({ email, password });
@@ -36,9 +35,17 @@ export function LoginPage() {
     }
   }
 
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      void handleSignIn();
+    }
+  }
+
   return (
     <div className="auth-page">
-      <form className="auth-card" noValidate onSubmit={onSubmit}>
+      {/* div, not form — iOS WKWebView still runs native validation on <form noValidate> inputs */}
+      <div className="auth-card" role="form" aria-label="Sign in">
         <div className="auth-logo-wrap">
           <Logo variant="dark" />
         </div>
@@ -49,39 +56,46 @@ export function LoginPage() {
             id="email"
             className="input"
             type="text"
-            inputMode="email"
-            autoComplete="email"
+            name="username"
+            autoComplete="username"
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
+            onKeyDown={handleKeyDown}
           />
         </div>
         <div className="field">
           <label htmlFor="password">Password</label>
           <input
             id="password"
-            className="input"
-            type="password"
+            className="input input-masked"
+            type="text"
+            name="password"
             autoComplete="current-password"
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required
+            onKeyDown={handleKeyDown}
           />
         </div>
         <ErrorText error={error} />
-        <button className="btn btn-primary" style={{ width: "100%" }} disabled={busy}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          style={{ width: "100%" }}
+          disabled={busy}
+          onClick={() => void handleSignIn()}
+        >
           {busy ? "Signing in…" : "Sign in"}
         </button>
         <p className="small muted" style={{ textAlign: "center", marginTop: "1rem" }}>
           New business? <Link to="/register">Create an account</Link>
         </p>
-      </form>
+      </div>
     </div>
   );
 }
